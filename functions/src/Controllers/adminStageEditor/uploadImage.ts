@@ -1,8 +1,8 @@
-import {Request, Response} from "express";
-import {bucket, db} from "../../admin/admin";
+import { Request, Response } from "express";
+import { bucket, db } from "../../admin/admin";
 
 const uploadImage = async (req: Request, res: Response) => {
-  const {category, lessonId, levelId, stageId} = req.body as {
+  const { category, lessonId, levelId, stageId } = req.body as {
     category: string;
     lessonId: string;
     levelId: string;
@@ -23,12 +23,12 @@ const uploadImage = async (req: Request, res: Response) => {
     // access the image using req.file
 
     if (!req.file?.buffer) {
-      return res.status(400).json({message: "No image buffer provided"});
+      return res.status(400).json({ message: "No image buffer provided" });
     }
     // Stores image into file storage
     await file.save(req.file.buffer, {
       metadata: {
-        contentType: req.file.mimetype, 
+        contentType: req.file.mimetype,
       },
       resumable: false,
     });
@@ -48,11 +48,11 @@ const uploadImage = async (req: Request, res: Response) => {
       }
     );
 
-    return res.status(200).json({message: "Image has been set"});
+    return res.status(200).json({ message: "Image has been set" });
   } catch (error) {
     return res
       .status(500)
-      .json({message: "Something went wrong with uploading an image"});
+      .json({ message: "Something went wrong with uploading an image" });
   }
 };
 export default uploadImage;

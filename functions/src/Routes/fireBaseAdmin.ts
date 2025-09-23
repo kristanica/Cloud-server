@@ -1,27 +1,30 @@
-import express, {Request, Response} from "express";
-import {middleWare} from "../Middleware/middleWare";
+import express, { Request, Response } from "express";
+import { middleWare } from "../Middleware/middleWare";
 
 import * as admin from "firebase-admin";
-import {editStage} from "../Controllers/adminStageEditor/editStage";
-import {deleteStage} from "../Controllers/adminStageEditor/deleteStage";
-import {getStageData} from "../Controllers/adminStageEditor/getStageData";
+import { editStage } from "../Controllers/adminStageEditor/editStage";
+import { deleteStage } from "../Controllers/adminStageEditor/deleteStage";
+import { getStageData } from "../Controllers/adminStageEditor/getStageData";
 
-import {addLevel} from "../Controllers/adminLessonEditor/addLevel";
+import { addLevel } from "../Controllers/adminLessonEditor/addLevel";
 import multer from "multer";
-import {addLesson} from "../Controllers/adminLessonEditor/addLesson";
-import {deleteLesson} from "../Controllers/adminLessonEditor/deleteLesson";
-import {getLevelData} from "../Controllers/adminLessonEditor/getLevelData";
-import {listStage} from "../Controllers/adminStageEditor/listStage";
-import {addStage} from "../Controllers/adminStageEditor/addStage";
-import {updateOrder} from "../Controllers/adminStageEditor/updateOrder";
-import {uploadVideo} from "../Controllers/adminStageEditor/uploadVideo";
-import {getSpecificLevelData} from "../Controllers/adminLevelEditor/getSpecificLevelData";
-import {deleteLevel} from "../Controllers/adminLevelEditor/deleteLevel";
-import {editLevel} from "../Controllers/adminLevelEditor/editLevel";
+import { addLesson } from "../Controllers/adminLessonEditor/addLesson";
+import { deleteLesson } from "../Controllers/adminLessonEditor/deleteLesson";
+import { getLevelData } from "../Controllers/adminLessonEditor/getLevelData";
+import { listStage } from "../Controllers/adminStageEditor/listStage";
+import { addStage } from "../Controllers/adminStageEditor/addStage";
+import { updateOrder } from "../Controllers/adminStageEditor/updateOrder";
+import { uploadVideo } from "../Controllers/adminStageEditor/uploadVideo";
+import { getSpecificLevelData } from "../Controllers/adminLevelEditor/getSpecificLevelData";
+import { deleteLevel } from "../Controllers/adminLevelEditor/deleteLevel";
+import { editLevel } from "../Controllers/adminLevelEditor/editLevel";
 import uploadImage from "../Controllers/adminStageEditor/uploadImage";
+import { uploadFile } from "../Controllers/adminStageEditor/uploadFile";
+import { codeCrafter } from "../Controllers/openAi/codeCrafter";
 
 const fireBaseAdminRoute = express.Router();
-const upload = multer({storage: multer.memoryStorage()});
+
+const upload = multer({ storage: multer.memoryStorage() });
 // Still not inused kasi need ata naka deploy na server dito
 fireBaseAdminRoute.post(
   "/setAdmin",
@@ -29,16 +32,16 @@ fireBaseAdminRoute.post(
 
   async (req: Request, res: Response) => {
     try {
-      const {uid} = req.body;
-      await admin.auth().setCustomUserClaims(uid, {admin: true});
+      const { uid } = req.body;
+      await admin.auth().setCustomUserClaims(uid, { admin: true });
 
       return res
         .status(200)
-        .json({message: "Admin has been set successully"});
+        .json({ message: "Admin has been set successully" });
     } catch (error) {
       console.log(error);
 
-      return res.status(500).json({message: error});
+      return res.status(500).json({ message: error });
     }
   }
 );
@@ -97,7 +100,19 @@ fireBaseAdminRoute.post(
   uploadImage
 );
 
+fireBaseAdminRoute.post(
+  "/uploadFile",
+  middleWare,
+  upload.single("replicateFile"), // Must be sent as URI. Name of the image on formData MUST be replicateImage
+  uploadFile
+);
+fireBaseAdminRoute.get("/test", (req, res) => {
+  console.log("reached");
+  res.status(200).json({ message: "Route hit!" });
+});
 // Seperate call, must be sent as formData and make content-type "multipart/form-data"
+
+fireBaseAdminRoute.post("/codeCrafter", middleWare, codeCrafter);
 fireBaseAdminRoute.post(
   "/uploadVideo",
   middleWare,

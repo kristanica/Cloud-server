@@ -1,8 +1,8 @@
-import {bucket, db} from "../../admin/admin";
-import {Request, Response} from "express";
-import {filter} from "../nativeExclusive/filter";
+import { bucket, db } from "../../admin/admin";
+import { Request, Response } from "express";
+import { filter } from "../nativeExclusive/filter";
 export const editStage = async (req: Request, res: Response) => {
-  const {category, lessonId, levelId, stageId, state, stageType} =
+  const { category, lessonId, levelId, stageId, state, stageType } =
     req.body as {
       category: string;
       lessonId: string;
@@ -23,7 +23,7 @@ export const editStage = async (req: Request, res: Response) => {
       .doc(stageId);
 
     if (xSource === "mobile-app") {
-      const {filteredState, toBeDeleted} = filter(state, stageType);
+      const { filteredState, toBeDeleted } = filter(state, stageType);
 
       await stageRef.set(
         {
@@ -41,7 +41,7 @@ export const editStage = async (req: Request, res: Response) => {
         filteredState.type !== "Lesson" ||
         filteredState.type !== "CodeCrafter"
       ) {
-        const [files] = await bucket.getFiles({prefix: filePath});
+        const [files] = await bucket.getFiles({ prefix: filePath });
         console.log(filePath);
         if (files.length > 0) {
           const deleteFiles = files.map((file) => file.delete());
@@ -70,6 +70,6 @@ export const editStage = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({message: "Failed to edit stage", error});
+    return res.status(500).json({ message: "Failed to edit stage", error });
   }
 };

@@ -1,11 +1,11 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import openAiRoute from "./Routes/openAi";
 import fireBaseRoute from "./Routes/fireBase";
 import fireBaseAdminRoute from "./Routes/fireBaseAdmin";
 import compression from "compression";
-import puppeteer from "puppeteer";
+
 // import * as functions from "firebase-functions/v2/https";
 dotenv.config();
 const PORT = process.env.PORT || 8082;
@@ -23,36 +23,6 @@ app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use("/openAI", openAiRoute);
 app.use("/fireBase", fireBaseRoute);
 
-// app.post("/test", async (req: Request, res: Response) => {
-//   try {
-//     const { html } = req.body;
-//     if (!html) {
-//       return res.status(400).json({ error: "Missing HTML" });
-//     }
-
-//     const browser = await puppeteer.launch({ headless: true });
-//     const page = await browser.newPage();
-
-//     await page.setContent(html, { waitUntil: "networkidle0" });
-
-//     // Take screenshot as base64
-//     const screenshotBuffer = await page.screenshot({ encoding: "base64" });
-
-//     await browser.close();
-
-//     // Send back JSON with the screenshot (you’ll later add SSIM here)
-//     return res.status(200).json({
-//       success: true,
-//       screenshot: screenshotBuffer,
-//       message: "Screenshot captured successfully 🎉",
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res
-//       .status(500)
-//       .json({ error: "Something went wrong rendering HTML" });
-//   }
-// });
 
 app.use("/fireBaseAdmin", fireBaseAdminRoute);
 app.listen(PORT, () => {

@@ -1,4 +1,4 @@
-import {Request, Response} from "express";
+import { Request, Response } from "express";
 import dotenv from "dotenv";
 
 import OpenAI from "openai";
@@ -8,7 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.API_KEY,
 });
 export const gamePrompt = async (req: Request, res: Response) => {
-  const {instructions, description, html, css, js} = req.body;
+  const { instructions, description, html, css, js } = req.body;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -53,10 +53,13 @@ Output format in JSON:
     ],
   });
   if (!response) {
-    return res.status(400).send({message: "cant call"});
+    return res.status(400).send({ message: "cant call" });
   }
+  console.log(html);
+  console.log(js);
+  console.log(css);
 
   const reply = response.choices[0].message.content;
   console.log(reply);
-  return res.send({response: reply});
+  return res.send({ response: reply });
 };

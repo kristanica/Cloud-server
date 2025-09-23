@@ -1,13 +1,16 @@
-import {bucket, db} from "../../admin/admin";
-import {Request, Response} from "express";
-export const deleteStage = async (req: Request, res: Response) => {
-  const {category, lessonId, levelId, stageId} = req.body as {
+import { getFirestore } from "firebase-admin/firestore";
+import { bucket, db } from "../../admin/admin";
+
+import { Response } from "express";
+export const deleteStage = async (req: any, res: Response) => {
+  const { category, lessonId, levelId, stageId } = req.body as {
     category: string;
     lessonId: string;
     levelId: string;
     stageId: string;
   };
-
+  const id = req.user?.uid;
+  console.log(id);
   try {
     const specificStageRef = db
       .collection(category)
@@ -31,9 +34,24 @@ export const deleteStage = async (req: Request, res: Response) => {
     const batch = db.batch();
 
     const filePath = `stageFiles/${category}/${lessonId}/${levelId}/${stageId}`;
-    const [files] = await bucket.getFiles({prefix: filePath});
+    const [files] = await bucket.getFiles({ prefix: filePath });
     const deleteFiles = files.map((file) => file.delete());
     await Promise.all(deleteFiles);
+
+    const userCollection = await db.collection("Users").get();
+
+    userCollection.docs.forEach(async (userDoc, index) => {
+      const progressRef = userDoc.ref
+        .collection("Progress")
+        .doc(category)
+        .collection("Lessons")
+        .doc(lessonId)
+        .collection("Levels")
+        .doc(levelId)
+        .collection("Stages")
+        .doc(stageId);
+      await getFirestore().recursiveDelete(progressRef);
+    });
 
     snapShot.docs.forEach((queryDoc, index) => {
       batch.update(queryDoc.ref, {
@@ -49,6 +67,6 @@ export const deleteStage = async (req: Request, res: Response) => {
   } catch (error) {
     return res
       .status(500)
-      .json({message: "Something when wrong when deleting" + error});
+      .json({ message: "Something when wrong when deleting" + error });
   }
 };

@@ -1,5 +1,5 @@
 // will delete the fields on firebase
-import {FieldValue} from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 const filters: Record<
   string,
@@ -27,7 +27,7 @@ const filters: Record<
       "imageReplication",
       "blocks",
     ],
-    toNumber: (item) => ({...item, timer: Number(item.timer)}),
+    toNumber: (item) => ({ ...item, timer: Number(item.timer) }),
   },
   BrainBytes: {
     omit: [
@@ -41,7 +41,14 @@ const filters: Record<
   },
 
   CodeCrafter: {
-    omit: ["timer", "hint", "choices", "videoPresentation", "imageReplication"],
+    omit: [
+      "timer",
+      "hint",
+      "choices",
+      "videoPresentation",
+      "imageReplication",
+      "blocks",
+    ],
   },
 };
 
@@ -66,5 +73,5 @@ export const filter = (state: any, stageType?: string) => {
     filteredState = setFilter.toNumber(filteredState);
   }
 
-  return {filteredState, toBeDeleted};
+  return { filteredState, toBeDeleted };
 };

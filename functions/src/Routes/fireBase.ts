@@ -1,9 +1,9 @@
-import express, {Request, Response} from "express";
-import {middleWare} from "../Middleware/middleWare";
+import express, { Request, Response } from "express";
+import { middleWare } from "../Middleware/middleWare";
 
-import {db} from "../admin/admin";
+import { db } from "../admin/admin";
 import * as admin from "firebase-admin";
-import {fetchLesson} from "../Controllers/user/fetchLesson";
+import { fetchLesson } from "../Controllers/user/fetchLesson";
 interface IUserRequest extends express.Request {
   user?: any;
 }
@@ -19,7 +19,7 @@ fireBaseRoute.get(
   middleWare,
   async (req: Request, res: Response) => {
     try {
-      const {category, lessonId, levelId} = req.params;
+      const { category, lessonId, levelId } = req.params;
       const stagesRef = db
         .collection(category)
         .doc(lessonId)
@@ -44,7 +44,7 @@ fireBaseRoute.get(
     } catch (error) {
       return res
         .status(500)
-        .json({message: "Failed to fetch the stages " + error});
+        .json({ message: "Failed to fetch the stages " + error });
     }
   }
 );
@@ -56,19 +56,19 @@ fireBaseRoute.post(
   middleWare,
   async (req: IUserRequest, res: Response) => {
     const uid = req.user?.uid; // userid
-    const {itemid, itemCost} = req.body;
+    const { itemid, itemCost } = req.body;
     // Can pass the user's currency in the body instead, but might stick to this.
     try {
       const userRef = db.collection("Users").doc(uid); // queries user data
       const userSnap = await userRef.get();
       if (!userSnap.exists) {
-        return res.status(404).json({message: "User does not exist"});
+        return res.status(404).json({ message: "User does not exist" });
       }
 
       const userData = userSnap.data();
 
       if (userData?.coins < itemCost) {
-        return res.status(401).json({message: "Not enough coins"});
+        return res.status(401).json({ message: "Not enough coins" });
       }
       // Update's user coins on firebase
       await userRef.update({
@@ -88,7 +88,7 @@ fireBaseRoute.post(
           quantity: admin.firestore.FieldValue.increment(1),
         });
       } else {
-        await inventoryRef.set({quantity: 1});
+        await inventoryRef.set({ quantity: 1 });
       }
 
       return res.status(200).json({
@@ -98,7 +98,7 @@ fireBaseRoute.post(
     } catch (error) {
       return res
         .status(500)
-        .json({message: "Failed when purchasing an item"});
+        .json({ message: "Failed when purchasing an item" });
     }
   }
 );
@@ -110,14 +110,14 @@ fireBaseRoute.get(
   middleWare,
   async (req: Request, res: Response) => {
     try {
-      const {uid} = req.params;
+      const { uid } = req.params;
 
       const userRef = db.collection("Users").doc(uid);
 
       const userData = await userRef.get();
 
       if (!userData.exists) {
-        return res.status(400).json({message: "This user does not exist"});
+        return res.status(400).json({ message: "This user does not exist" });
       }
       return res.status(200).json(userData.data());
     } catch (error) {
@@ -139,7 +139,7 @@ fireBaseRoute.get(
   async (req: IUserRequest, res: Response) => {
     try {
       const uid = req.user?.uid;
-      const {subject} = req.params;
+      const { subject } = req.params;
       const allProgress: progressType = {};
       const allStages: progressType = {};
 
@@ -180,7 +180,7 @@ fireBaseRoute.get(
 
           stagesDoc.forEach((stagesTemp) => {
             const stageStatus = stagesTemp.data().status;
-            allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus; 
+            allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
             if (stageStatus === true) completedStages += 1;
           });
         }
@@ -206,7 +206,7 @@ fireBaseRoute.get(
   middleWare,
   async (req: Request, res: Response) => {
     try {
-      const {subject} = req.params;
+      const { subject } = req.params;
 
       const lessonRef = db.collection(subject);
 
@@ -268,7 +268,7 @@ fireBaseRoute.get("/Shop", middleWare, async (req: Request, res: Response) => {
     const shopSnapShot = await db.collection("Shop").get();
 
     if (shopSnapShot.empty) {
-      return res.status(404).json({message: "No shop items found"});
+      return res.status(404).json({ message: "No shop items found" });
     }
     const itemList = shopSnapShot.docs.map((shopTemp) => ({
       id: shopTemp.id,
@@ -280,7 +280,7 @@ fireBaseRoute.get("/Shop", middleWare, async (req: Request, res: Response) => {
     console.log(error);
     return res
       .status(500)
-      .json({message: "Something went wrong when fetchng shop"});
+      .json({ message: "Something went wrong when fetchng shop" });
   }
 });
 
@@ -292,7 +292,7 @@ fireBaseRoute.post(
     try {
       const uid = req.user?.uid;
 
-      const {subject, lessonId, levelId, currentStageId} = req.body;
+      const { subject, lessonId, levelId, currentStageId } = req.body;
 
       // queries the currentStageData
       const stageData = db
@@ -345,9 +345,11 @@ fireBaseRoute.post(
         {
           status: true,
         },
-        {merge: true}
+        { merge: true }
       );
+      console.log(nextStageId);
 
+      console.log(nextStageType);
       return res.status(200).json({
         message: "Next stage unlocked",
         nextStageId: nextStageId,

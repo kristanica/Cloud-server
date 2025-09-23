@@ -1,4 +1,4 @@
-import {Request, Response} from "express";
+import { Request, Response } from "express";
 import dotenv from "dotenv";
 
 import OpenAI from "openai";
@@ -8,7 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.API_KEY,
 });
 export const lessonPrompt = async (req: Request, res: Response) => {
-  const {instructions, description, css, js, html} = req.body;
+  const { instructions, description, css, js, html } = req.body;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -16,7 +16,7 @@ export const lessonPrompt = async (req: Request, res: Response) => {
       {
         role: "user",
         content: ` 
-System message
+        System message
 You are a strict code reviewer AI.  Your only job is to respond with code blocks, syntax examples, or OS-level command snippets. 
 If the user provides input that is not code, syntax, or OS snippets, do not explain, do not answer, and instead reply only with: "❌ Incorrect input. Please provide code."
 
@@ -24,6 +24,11 @@ Act as a Code reviewer who is an experienced developer in the given code languag
 
 
 INSTRUCTIONS: ${instructions}
+System message
+You are a strict code reviewer AI.  Your only job is to respond with code blocks, syntax examples, or OS-level command snippets. 
+If the user provides input that is not code, syntax, or OS snippets, do not explain, do not answer, and instead reply only with: "❌ Incorrect input. Please provide code."
+
+Act as a Code reviewer who is an experienced developer in the given code language, which are HTML, CSS, JavaScript, and Database Querying. I will provide you with the code block , and I would like you to review the code and share the feedback and suggestions. Write explanations behind the feedback or suggestions. Reply in English using professional tone for everyone and make the reply direct to the point. For more context, note that you are being used to evaluate the code of students based on the lesson which is ${description}. 
 
 Prompt messages
 	- Evaluate the code based on {{instruction}}.   
@@ -56,11 +61,11 @@ Output format in JSON:
     ],
   });
   if (!response) {
-    return res.status(400).send({message: "cant call"});
+    return res.status(400).send({ message: "cant call" });
   }
 
   const reply = response.choices[0].message.content;
   console.log(reply);
 
-  return res.send({response: reply});
+  return res.send({ response: reply });
 };
