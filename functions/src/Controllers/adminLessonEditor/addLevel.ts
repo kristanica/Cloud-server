@@ -1,5 +1,5 @@
-import {Request, Response} from "express";
-import {db} from "../../admin/admin";
+import { Request, Response } from "express";
+import { db } from "../../admin/admin";
 export const addLevel = async (req: Request, res: Response) => {
   const {
     category,
@@ -30,7 +30,7 @@ export const addLevel = async (req: Request, res: Response) => {
       .collection("Levels")
       .doc(newLevelid)
       .set({
-        Level: nextNumber,
+        levelOrder: nextNumber,
         createdAt: new Date(),
       });
 
@@ -38,6 +38,6 @@ export const addLevel = async (req: Request, res: Response) => {
       message: `Sucessfully added Level ${nextNumber} under ${lessonId}!`,
     });
   } catch (error) {
-    return res.status(500).json({message: error});
+    return res.status(500).json({ message: error });
   }
 };
