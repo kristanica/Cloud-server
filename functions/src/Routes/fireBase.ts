@@ -291,20 +291,34 @@ fireBaseRoute.post(
   async (req: IUserRequest, res: Response) => {
     try {
       const uid = req.user?.uid;
+      const { subject, lessonId, levelId, stageId } = req.body;
 
-      const { subject, lessonId, levelId, currentStageId } = req.body;
+      if (!uid || !subject || !lessonId || !levelId || !stageId) {
+        return res.status(400).json({
+          message: "Missing required parameters",
+          uid,
+          subject,
+          lessonId,
+          levelId,
+          stageId,
+        });
+      }
 
-      // queries the currentStageData
-      const stageData = db
+      const stageRef = db
         .collection(subject)
         .doc(lessonId)
         .collection("Levels")
         .doc(levelId)
         .collection("Stages")
-        .doc(currentStageId);
+        .doc(stageId);
 
-      // Retrieves the order field
-      const currentStageDataOrder = (await stageData.get()).data()?.order;
+      const currentStageOrder = (await stageRef.get()).data()?.order;
+
+      if (currentStageOrder === undefined) {
+        return res.status(400).json({
+          message: "Stage is missing 'order' field",
+        });
+      }
 
       const nextStageQuery = await db
         .collection(subject)
@@ -312,93 +326,64 @@ fireBaseRoute.post(
         .collection("Levels")
         .doc(levelId)
         .collection("Stages")
-        .where("order", ">", currentStageDataOrder) // gets all the stages where order is greater than currentStageDataOrder
-        .orderBy("order") // list by order
-        .limit(1) // only gets the next stage (limits to 1)
+        .where("order", ">", currentStageOrder)
+        .orderBy("order")
+        .limit(1)
         .get();
 
-      // if the next stage is empty, unlock the next level instead
-      console.log(nextStageQuery);
-      if (nextStageQuery.empty) {
-        console.log("next stage is empty");
-        const currentLevelOrder = (
-          await db
-            .collection(subject)
-            .doc(lessonId)
-            .collection("Levels")
-            .doc(levelId)
-            .get()
-        ).data()?.levelOrder;
-        console.log(currentLevelOrder);
-        const nextLevelQuery = await db
+      if (!nextStageQuery.empty) {
+        const nextStageDoc = nextStageQuery.docs[0];
+        const nextStageId = nextStageDoc.id;
+
+        const nextStageRef = db
+          .collection("Users")
+          .doc(uid)
+          .collection("Progress")
+          .doc(subject)
+          .collection("Lessons")
+          .doc(lessonId)
+          .collection("Levels")
+          .doc(levelId)
+          .collection("Stages")
+          .doc(nextStageId);
+
+        await nextStageRef.set({ status: true }, { merge: true });
+
+        return res.status(200).json({
+          message: "Next stage unlocked",
+          nextStageId,
+          isNextStageUnlocked: true,
+        });
+      }
+
+      const currentLevelOrder = (
+        await db
           .collection(subject)
           .doc(lessonId)
           .collection("Levels")
-          .where("levelOrder", ">", currentLevelOrder)
-          .orderBy("levelOrder")
-          .limit(1)
-          .get();
+          .doc(levelId)
+          .get()
+      ).data()?.levelOrder;
 
-        //If next
-        if (nextLevelQuery.empty) {
-          const currentLessonOrder = (
-            await db.collection(subject).doc(lessonId).get()
-          ).data()?.Lesson;
-          const nextLessonQuery = await db
-            .collection(subject)
-            .where("Lesson", ">", currentLessonOrder)
-            .orderBy("Lesson")
-            .limit(1)
-            .get();
+      if (currentLevelOrder === undefined) {
+        return res.status(400).json({
+          message: "Level is missing 'levelOrder' field",
+        });
+      }
 
-          const nextLessonDoc = nextLessonQuery.docs[0];
-          const nextLessonId = nextLessonDoc.id;
-          const nextLessonRef = db
-            .collection("Users")
-            .doc(uid)
-            .collection("Progress")
-            .doc(subject)
-            .collection("Lessons")
-            .doc(nextLessonId);
+      const nextLevelQuery = await db
+        .collection(subject)
+        .doc(lessonId)
+        .collection("Levels")
+        .where("levelOrder", ">", currentLevelOrder)
+        .orderBy("levelOrder")
+        .limit(1)
+        .get();
 
-          await nextLessonRef.set(
-            {
-              isLessonUnlocked: true,
-            },
-            {
-              merge: true,
-            }
-          );
-          const nextLevelRef = nextLessonRef.collection("Levels").doc("Level1");
-
-          await nextLevelRef.set(
-            {
-              status: true,
-              rewardClaimed: true,
-            },
-            {
-              merge: true,
-            }
-          );
-
-          const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
-          await nextStageRef.set(
-            {
-              status: true,
-            },
-            {
-              merge: true,
-            }
-          );
-          return res.status(200).json({
-            message: "Lesson Completed",
-            nextLessonId: nextLessonId,
-            isNextLessonUnlocked: true,
-          });
-        }
-
+      if (!nextLevelQuery.empty) {
         const nextLevelDoc = nextLevelQuery.docs[0];
         const nextLevelId = nextLevelDoc.id;
+
         const nextLevelRef = db
           .collection("Users")
           .doc(uid)
@@ -410,62 +395,76 @@ fireBaseRoute.post(
           .doc(nextLevelId);
 
         await nextLevelRef.set(
-          {
-            status: true,
-            rewardClaimed: false,
-          },
-          {
-            merge: true,
-          }
-        );
-        const nextLevelStage = nextLevelRef.collection("Stages").doc("Stage1");
-        await nextLevelStage.set(
-          {
-            status: true,
-          },
-          {
-            merge: true,
-          }
+          { status: true, rewardClaimed: false },
+          { merge: true }
         );
 
+        const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
+        await nextStageRef.set({ status: true }, { merge: true });
+
         return res.status(200).json({
-          message: "Level Completed",
-          nextLevelId: nextLevelId,
+          message: "Next level unlocked",
+          nextLevelId,
           isNextLevelUnlocked: true,
         });
       }
 
-      const nextStageDoc = nextStageQuery.docs[0];
-      const nextStageId = nextStageDoc.id;
+      const currentLessonOrder = (
+        await db.collection(subject).doc(lessonId).get()
+      ).data()?.Lesson;
 
-      const nextStageRef = db
-        .collection("Users")
-        .doc(uid)
-        .collection("Progress")
-        .doc(subject)
-        .collection("Lessons")
-        .doc(lessonId)
-        .collection("Levels")
-        .doc(levelId)
-        .collection("Stages")
-        .doc(nextStageId);
+      if (currentLessonOrder === undefined) {
+        return res.status(400).json({
+          message: "Lesson is missing 'Lesson' order field",
+        });
+      }
 
-      await nextStageRef.set(
-        {
-          status: true,
-        },
-        { merge: true }
-      );
+      const nextLessonQuery = await db
+        .collection(subject)
+        .where("Lesson", ">", currentLessonOrder)
+        .orderBy("Lesson")
+        .limit(1)
+        .get();
+
+      if (!nextLessonQuery.empty) {
+        const nextLessonDoc = nextLessonQuery.docs[0];
+        const nextLessonId = nextLessonDoc.id;
+
+        const nextLessonRef = db
+          .collection("Users")
+          .doc(uid)
+          .collection("Progress")
+          .doc(subject)
+          .collection("Lessons")
+          .doc(nextLessonId);
+
+        await nextLessonRef.set({ isLessonUnlocked: true }, { merge: true });
+
+        const nextLevelRef = nextLessonRef.collection("Levels").doc("Level1");
+        await nextLevelRef.set(
+          { status: true, rewardClaimed: true },
+          { merge: true }
+        );
+
+        const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
+        await nextStageRef.set({ status: true }, { merge: true });
+
+        return res.status(200).json({
+          message: "Next lesson unlocked",
+          nextLessonId,
+          isNextLessonUnlocked: true,
+        });
+      }
 
       return res.status(200).json({
-        message: "Next stage unlocked",
-        nextStageId: nextStageId,
+        message: `${subject} has been completed! 🎉`,
+        isWholeTopicFinished: true,
       });
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return res.status(500).json({
-        message:
-          "Something went wrong when unlock next stage or lesson" + error,
+        message: "Something went wrong when unlocking next stage/level/lesson",
+        error: error instanceof Error ? error.message : error,
       });
     }
   }
