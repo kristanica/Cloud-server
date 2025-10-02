@@ -38,7 +38,7 @@ export const editStage = async (req: Request, res: Response) => {
       const filePath = `stageFiles/${category}/${lessonId}/${levelId}/${stageId}/`;
 
       if (
-        filteredState.type !== "Lesson" ||
+        filteredState.type !== "Lesson" &&
         filteredState.type !== "CodeCrafter"
       ) {
         const [files] = await bucket.getFiles({ prefix: filePath });
@@ -47,7 +47,7 @@ export const editStage = async (req: Request, res: Response) => {
           const deleteFiles = files.map((file) => file.delete());
           await Promise.all(deleteFiles);
         } else {
-          console.log("File does notexists");
+          console.log("File does not exist");
         }
       }
 

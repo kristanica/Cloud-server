@@ -4,6 +4,7 @@ import { middleWare } from "../Middleware/middleWare";
 import { db } from "../admin/admin";
 import * as admin from "firebase-admin";
 import { fetchLesson } from "../Controllers/user/fetchLesson";
+import { fetchAchievements } from "../Controllers/user/fetchAchievements";
 interface IUserRequest extends express.Request {
   user?: any;
 }
@@ -561,4 +562,8 @@ fireBaseRoute.get(
     }
   }
 );
+
+fireBaseRoute.get("/achievements/:category", middleWare, fetchAchievements);
+
+
 export default fireBaseRoute;
