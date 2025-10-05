@@ -57,7 +57,7 @@ fireBaseRoute.post(
   middleWare,
   async (req: IUserRequest, res: Response) => {
     const uid = req.user?.uid; // userid
-    const { itemid, itemCost } = req.body;
+    const { itemId, itemCost, itemName } = req.body;
     // Can pass the user's currency in the body instead, but might stick to this.
     try {
       const userRef = db.collection("Users").doc(uid); // queries user data
@@ -80,16 +80,18 @@ fireBaseRoute.post(
         .collection("Users")
         .doc(uid)
         .collection("Inventory")
-        .doc(itemid);
+        .doc(itemId);
 
       const inventorySnap = await inventoryRef.get();
 
       if (inventorySnap.exists) {
         await inventoryRef.update({
           quantity: admin.firestore.FieldValue.increment(1),
+          Icon: itemName || "",
+          title: itemName.replace("_Icon", ""),
         });
       } else {
-        await inventoryRef.set({ quantity: 1 });
+        await inventoryRef.set({ quantity: 1, Icon: itemName || "" });
       }
 
       return res.status(200).json({
@@ -564,6 +566,5 @@ fireBaseRoute.get(
 );
 
 fireBaseRoute.get("/achievements/:category", middleWare, fetchAchievements);
-
 
 export default fireBaseRoute;

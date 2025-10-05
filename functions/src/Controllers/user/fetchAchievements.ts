@@ -22,7 +22,7 @@ export const fetchAchievements = async (req: Request, res: Response) => {
 
     const achievementData: achievementsReturnType =
       achievementsSnapShot.data() as achievementsReturnType;
-    console.log(achievementData);
+
     return res.status(200).json(achievementData);
   } catch (error) {
     console.log(error);
