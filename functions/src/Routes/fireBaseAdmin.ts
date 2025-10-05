@@ -64,7 +64,7 @@ fireBaseAdminRoute.get(
   getStageData
 );
 // Editing a stage
-fireBaseAdminRoute.post("/editStage", middleWare, editStage);
+fireBaseAdminRoute.post("/editStage", middleWare, upload.any(), editStage);
 // Deleting a stage and reordering them automatically
 fireBaseAdminRoute.post("/deleteStage", middleWare, deleteStage);
 
