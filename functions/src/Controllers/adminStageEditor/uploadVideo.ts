@@ -1,7 +1,7 @@
-import {Request, Response} from "express";
-import {bucket, db} from "../../admin/admin";
+import { Request, Response } from "express";
+import { bucket, db } from "../../admin/admin";
 export const uploadVideo = async (req: Request, res: Response) => {
-  const {category, lessonId, levelId, stageId} = req.body as {
+  const { category, lessonId, levelId, stageId } = req.body as {
     category: string;
     lessonId: string;
     levelId: string;
@@ -20,7 +20,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
   // accesss the video using req.file
 
   if (!req.file) {
-    return res.status(400).json({error: "No file uploaded."});
+    return res.status(400).json({ error: "No file uploaded." });
   }
 
   await file.save(req.file.buffer, {
@@ -28,7 +28,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
     metadata: {
       contentType: req.file.mimetype, // takes in the type of the file from form data (i.e vieo/mp4)
     },
-    resumable: false,
+    resumable: true,
   });
   // Might still change
   const [signedUrl] = await file.getSignedUrl({
