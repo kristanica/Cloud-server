@@ -21,6 +21,10 @@ import { editLevel } from "../Controllers/adminLevelEditor/editLevel";
 import uploadImage from "../Controllers/adminStageEditor/uploadImage";
 import { uploadFile } from "../Controllers/adminStageEditor/uploadFile";
 import { codeCrafter } from "../Controllers/openAi/codeCrafter";
+import { fetchUsers } from "../Controllers/userManagement/fetchUsers";
+import { suspendUser } from "../Controllers/userManagement/suspendUser";
+import { searchUser } from "../Controllers/userManagement/searchUser";
+import { gameOver } from "../Controllers/gameOver";
 
 const fireBaseAdminRoute = express.Router();
 
@@ -119,5 +123,11 @@ fireBaseAdminRoute.post(
   upload.single("video"), // Must be sent as URI. Name of the video on formData MUST be video
   uploadVideo
 );
+
+//fetches all users
+fireBaseAdminRoute.get("/getUsers", middleWare, fetchUsers);
+fireBaseAdminRoute.get("/searchUser/:name", middleWare, searchUser);
+fireBaseAdminRoute.post("/suspendUser", middleWare, suspendUser);
+fireBaseAdminRoute.post("/gameOver", middleWare, gameOver);
 
 export default fireBaseAdminRoute;
