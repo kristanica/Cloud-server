@@ -1,7 +1,7 @@
-import {db} from "../../admin/admin";
-import {Request, Response} from "express";
+import { db } from "../../admin/admin";
+import { Request, Response } from "express";
 export const addLesson = async (req: Request, res: Response) => {
-  const {category}: { category: string } = req.body;
+  const { category }: { category: string } = req.body;
   try {
     const lessonData = (await db.collection(category).get()).docs;
     const newLessonNumber = lessonData.map((item) => {
@@ -27,13 +27,18 @@ export const addLesson = async (req: Request, res: Response) => {
       .doc("Level1")
       .set({
         lesson: 1,
+        description: "This is a newly added level, feel free to edit this!",
+        title: "This is a template!",
+        expReward: 1,
+        coinsReward: 1,
+        levelOrder: 1,
         createdAt: new Date(),
       });
 
     return res
       .status(200)
-      .json({message: `Lesson ${nextNumber} has been added sucessfully!`});
+      .json({ message: `Lesson ${nextNumber} has been added sucessfully!` });
   } catch (error) {
-    return res.status(500).json({message: error});
+    return res.status(500).json({ message: error });
   }
 };

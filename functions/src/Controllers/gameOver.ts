@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../admin/admin";
-import { FieldPath } from "firebase-admin/firestore";
+import { FieldPath, FieldValue } from "firebase-admin/firestore";
 
 export const gameOver = async (req: Request, res: Response) => {
   const {
@@ -8,11 +8,13 @@ export const gameOver = async (req: Request, res: Response) => {
     category,
     lessonId,
     levelId,
+    stageId,
   }: {
     id: string;
     category: string;
     lessonId: string;
     levelId: string;
+    stageId: string;
   } = req.body;
   console.log("Received body:", req.body);
 
@@ -38,13 +40,23 @@ export const gameOver = async (req: Request, res: Response) => {
     const resetRefSnapShot = await resetRef.get();
 
     resetRefSnapShot.docs.forEach((docSnap) => {
-      console.log("Deleting:", docSnap.id, docSnap.data());
-      batch.delete(docSnap.ref);
+      const isCurrentStage = docSnap.id === stageId;
+      batch.set(
+        docSnap.ref,
+        {
+          isCompleted: false,
+          ...(isCurrentStage && { failedAttempts: FieldValue.increment(1) }),
+        },
+        {
+          merge: true,
+        }
+      );
+      batch.update(docSnap.ref, {
+        completedAt: FieldValue.delete(),
+      });
     });
 
     await batch.commit();
-
-    console.log("ASDSAD");
 
     return res.status(200).json({
       message:

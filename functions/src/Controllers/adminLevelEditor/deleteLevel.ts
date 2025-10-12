@@ -10,11 +10,6 @@ export const deleteLevel = async (req: Request, res: Response) => {
   };
 
   try {
-    const levelRef = db
-      .collection(category)
-      .doc(lessonId)
-      .collection("Levels")
-      .doc(levelId);
     const filePath = `stageFiles/${category}/${lessonId}/${levelId}`;
     const [files] = await bucket.getFiles({ prefix: filePath });
     if (files.length > 0) {
@@ -24,20 +19,36 @@ export const deleteLevel = async (req: Request, res: Response) => {
 
     const userCollection = await db.collection("Users").get();
 
-    userCollection.docs.forEach(async (userDoc, index) => {
-      const progressRef = userDoc.ref
-        .collection("Progress")
-        .doc(category)
-        .collection("Lessons")
-        .doc(lessonId)
-        .collection("Levels")
-        .doc(levelId);
+    await Promise.all(
+      userCollection.docs.map(async (userDoc) => {
+        const progressRef = userDoc.ref
+          .collection("Progress")
+          .doc(category)
+          .collection("Lessons")
+          .doc(lessonId)
+          .collection("Levels")
+          .doc(levelId);
+        return getFirestore().recursiveDelete(progressRef);
+      })
+    );
 
-      await getFirestore().recursiveDelete(progressRef);
-    });
-    // MAY GANTO PALA PUTANGINA?
+    const levelRef = db
+      .collection(category)
+      .doc(lessonId)
+      .collection("Levels")
+      .doc(levelId);
 
     await getFirestore().recursiveDelete(levelRef);
+    const levelSnap = await db
+      .collection(category)
+      .doc(lessonId)
+      .collection("Levels")
+      .get();
+    if (levelSnap.empty) {
+      await getFirestore().recursiveDelete(
+        db.collection(category).doc(lessonId)
+      );
+    }
 
     return res.status(200).json({
       message: `Level ${levelId} and its related data deleted successfully.`,
