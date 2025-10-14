@@ -119,6 +119,7 @@ Your output must be a JSON object as follows:
   "correct": true/false,
   "evaluation": "Correct" or "Incorrect",
   "feedback": "Brief feedback why the code is correct or wrong",
+
 }
 
 Examples:
@@ -128,13 +129,19 @@ If correct:
   "correct": true,
   "evaluation": "Correct",
   "feedback": "The missing closing tag for <p> was fixed.",
+
 }
 If incorrect:
 {
   "correct": false,
   "evaluation": "Incorrect",
   "feedback": "A closing tag is missing.",
-}`,
+
+}
+  
+
+
+`,
       },  {
         role: "user",
         content: `

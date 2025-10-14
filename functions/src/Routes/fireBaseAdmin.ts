@@ -21,6 +21,7 @@ import { editLevel } from "../Controllers/adminLevelEditor/editLevel";
 import uploadImage from "../Controllers/adminStageEditor/uploadImage";
 import { uploadFile } from "../Controllers/adminStageEditor/uploadFile";
 import { codeCrafter } from "../Controllers/openAi/codeCrafter";
+import { gameOver } from "../Controllers/gameOver";
 
 const fireBaseAdminRoute = express.Router();
 
@@ -45,6 +46,8 @@ fireBaseAdminRoute.post(
     }
   }
 );
+//GameOVer
+fireBaseAdminRoute.post("/gameOver", middleWare, gameOver);
 
 // Gets all levels per specific category
 fireBaseAdminRoute.get("/getAllLevel/:category", middleWare, getLevelData);

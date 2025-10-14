@@ -145,6 +145,7 @@ fireBaseRoute.get(
       const { subject } = req.params;
       const allProgress: progressType = {};
       const allStages: progressType = {};
+      const allStagesComplete: progressType = {};
 
       let completedLevels = 0;
       let completedStages = 0;
@@ -164,7 +165,7 @@ fireBaseRoute.get(
           .get();
         for (const levelsTemp of levelsDoc.docs) {
           const levelId = levelsTemp.id;
-          const status = levelsTemp.data().status; // gets the status for each levels per specific user
+          const status = levelsTemp.data().isActive; // gets the status for each levels per specific user
           allProgress[`${lessonId}-${levelId}`] = status;
 
           if (status === true) completedLevels += 1;
@@ -182,8 +183,13 @@ fireBaseRoute.get(
             .get();
 
           stagesDoc.forEach((stagesTemp) => {
-            const stageStatus = stagesTemp.data().status;
+            const stageStatus = stagesTemp.data().isActive;
             allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
+            if (stageStatus === true) completedStages += 1;
+          });
+          stagesDoc.forEach((stagesTemp) => {
+            const stageStatus = stagesTemp.data().isCompleted;
+            allStagesComplete[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
             if (stageStatus === true) completedStages += 1;
           });
         }
@@ -191,6 +197,7 @@ fireBaseRoute.get(
       return res.status(200).json({
         allProgress,
         allStages,
+        allStagesComplete,
         completedLevels,
         completedStages,
       });
@@ -307,6 +314,17 @@ fireBaseRoute.post(
         });
       }
 
+      const stageRefPlaceHolder = db
+        .collection("Users")
+        .doc(uid)
+        .collection("Progress")
+        .doc(subject)
+        .collection("Lessons")
+        .doc(lessonId)
+        .collection("Levels")
+        .doc(levelId)
+        .collection("Stages");
+
       const stageRef = db
         .collection(subject)
         .doc(lessonId)
@@ -337,28 +355,64 @@ fireBaseRoute.post(
       if (!nextStageQuery.empty) {
         const nextStageDoc = nextStageQuery.docs[0];
         const nextStageId = nextStageDoc.id;
+        const nextStageType = nextStageDoc.data()?.type || null;
 
-        const nextStageRef = db
-          .collection("Users")
-          .doc(uid)
-          .collection("Progress")
-          .doc(subject)
-          .collection("Lessons")
-          .doc(lessonId)
-          .collection("Levels")
-          .doc(levelId)
-          .collection("Stages")
-          .doc(nextStageId);
+        //  mark current stage as completed
+        const currentStageRef = stageRefPlaceHolder.doc(stageId);
+        await currentStageRef.set(
+          {
+            isCompleted: true,
+            completedAt: new Date(),
+          },
+          { merge: true }
+        );
 
-        await nextStageRef.set({ status: true }, { merge: true });
+        // unlock next stage (special case for Stage1)
+        const nextStageRef = stageRefPlaceHolder.doc(nextStageId);
+        const nextStageSnap = await nextStageRef.get();
+
+        if (!nextStageSnap.exists) {
+          // if next stage doesn't exist in user progress yet, create it
+          await nextStageRef.set(
+            {
+              isActive: true,
+              //  if it's Stage1, automatically mark as completed
+              isCompleted: nextStageId === "Stage1",
+              dateUnlocked: new Date(),
+            },
+            { merge: true }
+          );
+        } else {
+          const nextStageData = nextStageSnap.data();
+
+          // only update if not completed yet
+          if (nextStageData?.isCompleted !== true) {
+            await nextStageRef.set(
+              {
+                isActive: true,
+                //  don't overwrite completion but ensure Stage1 rule applies
+                isCompleted:
+                  nextStageId === "Stage1"
+                    ? true
+                    : nextStageData?.isCompleted || false,
+                dateUnlocked: nextStageData?.dateUnlocked || new Date(),
+              },
+              { merge: true }
+            );
+          }
+        }
 
         return res.status(200).json({
           message: "Next stage unlocked",
           nextStageId,
+          nextStageType,
           isNextStageUnlocked: true,
         });
       }
 
+      // ----------------------------
+      //  handle next level unlock
+      // ----------------------------
       const currentLevelOrder = (
         await db
           .collection(subject)
@@ -386,24 +440,58 @@ fireBaseRoute.post(
       if (!nextLevelQuery.empty) {
         const nextLevelDoc = nextLevelQuery.docs[0];
         const nextLevelId = nextLevelDoc.id;
-
-        const nextLevelRef = db
+        const levelRefPlaceHolder = db
           .collection("Users")
           .doc(uid)
           .collection("Progress")
           .doc(subject)
           .collection("Lessons")
           .doc(lessonId)
-          .collection("Levels")
-          .doc(nextLevelId);
+          .collection("Levels");
+        const currentLevelRef = levelRefPlaceHolder.doc(levelId);
 
-        await nextLevelRef.set(
-          { status: true, rewardClaimed: false },
+        // mark last stage as completed
+        const lastStageRef = stageRefPlaceHolder.doc(stageId);
+        await lastStageRef.set(
+          {
+            isCompleted: true,
+            completedAt: new Date(),
+          },
           { merge: true }
         );
 
+        // mark current level as completed
+        await currentLevelRef.set(
+          {
+            isRewardClaimed: true,
+            isCompleted: true,
+            completedAt: new Date(),
+          },
+          { merge: true }
+        );
+
+        // unlock next level
+        const nextLevelRef = levelRefPlaceHolder.doc(nextLevelId);
+        await nextLevelRef.set(
+          {
+            isActive: true,
+            isRewardClaimed: false,
+            dateUnlocked: new Date(),
+            isCompleted: false,
+          },
+          { merge: true }
+        );
+
+        //  when creating Stage1 in the next level, mark completed = true
         const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
-        await nextStageRef.set({ status: true }, { merge: true });
+        await nextStageRef.set(
+          {
+            isActive: true,
+            isCompleted: true,
+            dateUnlocked: new Date(),
+          },
+          { merge: true }
+        );
 
         return res.status(200).json({
           message: "Next level unlocked",
@@ -412,6 +500,9 @@ fireBaseRoute.post(
         });
       }
 
+      // ----------------------------
+      // handle next lesson unlock
+      // ----------------------------
       const currentLessonOrder = (
         await db.collection(subject).doc(lessonId).get()
       ).data()?.Lesson;
@@ -445,12 +536,26 @@ fireBaseRoute.post(
 
         const nextLevelRef = nextLessonRef.collection("Levels").doc("Level1");
         await nextLevelRef.set(
-          { status: true, rewardClaimed: true },
+          {
+            isActive: true,
+            isRewardClaimed: false,
+            dateUnlocked: new Date(),
+            isCompleted: false,
+          },
           { merge: true }
         );
 
+        //  auto-complete Stage1 on new lesson unlock
         const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
-        await nextStageRef.set({ status: true }, { merge: true });
+        await nextStageRef.set(
+          {
+            isActive: true,
+            isCompleted: true,
+            dateUnlocked: new Date(),
+            status: true,
+          },
+          { merge: true }
+        );
 
         return res.status(200).json({
           message: "Next lesson unlocked",
@@ -459,8 +564,9 @@ fireBaseRoute.post(
         });
       }
 
+      //  if all lessons done
       return res.status(200).json({
-        message: `${subject} has been completed! 🎉`,
+        message: `${subject} has been completed! `,
         isWholeTopicFinished: true,
       });
     } catch (error) {
@@ -472,6 +578,7 @@ fireBaseRoute.post(
     }
   }
 );
+
 
 // Return type for level progress
 type allProgressType = Record<
