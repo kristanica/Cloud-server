@@ -133,6 +133,7 @@ fireBaseRoute.get(
   }
 );
 
+type progressType = Record<string, boolean>;
 fireBaseRoute.get(
   "/userProgres/:subject",
   middleWare,
@@ -140,8 +141,9 @@ fireBaseRoute.get(
     try {
       const uid = req.user?.uid;
       const { subject } = req.params;
-      const allProgress: any = {};
-      const allStages: any = {};
+      const allProgress: progressType = {};
+      const allStages: progressType = {};
+      const allStagesComplete: progressType = {};
 
       let completedLevels = 0;
       let completedStages = 0;
@@ -161,22 +163,10 @@ fireBaseRoute.get(
           .get();
         for (const levelsTemp of levelsDoc.docs) {
           const levelId = levelsTemp.id;
-          const isActive: boolean = levelsTemp.data().isActive;
-          const isRewardClaimed: boolean = levelsTemp.data().isRewardClaimed;
-          const dateUnlocked: Date = levelsTemp.data().dateUnlocked;
-          const isCompleted: boolean = levelsTemp.data().isCompleted;
-          const completedAt: Date = levelsTemp.data().completedAt;
+          const status = levelsTemp.data().isActive; // gets the status for each levels per specific user
+          allProgress[`${lessonId}-${levelId}`] = status;
 
-          // gets the status for each levels per specific user
-          allProgress[`${lessonId}-${levelId}`] = {
-            isActive: isActive,
-            isRewardClaimed: isRewardClaimed,
-            dateUnlocked: dateUnlocked,
-            isCompleted: isCompleted,
-            completedAt: completedAt,
-          };
-
-          if (isCompleted === true) completedLevels += 1;
+          if (status === true) completedLevels += 1;
 
           const stagesDoc = await db
             .collection("Users")
@@ -191,24 +181,21 @@ fireBaseRoute.get(
             .get();
 
           stagesDoc.forEach((stagesTemp) => {
-            const isStageActive: boolean = stagesTemp.data().isActive;
-            const isStageCompleted: boolean = stagesTemp.data().isCompleted;
-            const dateUnlockStage: Date = stagesTemp.data().dateUnlocked;
-            const stageCompletedAt: Date = stagesTemp.data().completedAt;
-            allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = {
-              isActive: isStageActive,
-              isCompleted: isStageCompleted,
-              dateUnlocked: dateUnlockStage,
-
-              completedAt: stageCompletedAt,
-            };
-            if (isStageActive === true) completedStages += 1;
+            const stageStatus = stagesTemp.data().isActive;
+            allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
+            if (stageStatus === true) completedStages += 1;
+          });
+          stagesDoc.forEach((stagesTemp) => {
+            const stageStatus = stagesTemp.data().isCompleted;
+            allStagesComplete[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
+            if (stageStatus === true) completedStages += 1;
           });
         }
       }
       return res.status(200).json({
         allProgress,
         allStages,
+        allStagesComplete,
         completedLevels,
         completedStages,
       });
@@ -306,6 +293,7 @@ fireBaseRoute.get("/Shop", middleWare, async (req: Request, res: Response) => {
 });
 
 // Unlock next stage
+// Unlock next stage
 fireBaseRoute.post(
   "/unlockStage",
   middleWare,
@@ -324,6 +312,7 @@ fireBaseRoute.post(
           stageId,
         });
       }
+
       const stageRefPlaceHolder = db
         .collection("Users")
         .doc(uid)
@@ -365,37 +354,64 @@ fireBaseRoute.post(
       if (!nextStageQuery.empty) {
         const nextStageDoc = nextStageQuery.docs[0];
         const nextStageId = nextStageDoc.id;
+        const nextStageType = nextStageDoc.data()?.type || null;
 
-        //sets the previous stage as completed
+        //  mark current stage as completed
         const currentStageRef = stageRefPlaceHolder.doc(stageId);
         await currentStageRef.set(
           {
             isCompleted: true,
             completedAt: new Date(),
           },
-          {
-            merge: true,
-          }
-        );
-
-        //unlocks the next stage and set isCompleted as false
-        const nextStageRef = stageRefPlaceHolder.doc(nextStageId);
-        await nextStageRef.set(
-          {
-            isActive: true,
-            isCompleted: false,
-            dateUnlocked: new Date(),
-          },
           { merge: true }
         );
+
+        // unlock next stage (special case for Stage1)
+        const nextStageRef = stageRefPlaceHolder.doc(nextStageId);
+        const nextStageSnap = await nextStageRef.get();
+
+        if (!nextStageSnap.exists) {
+          // if next stage doesn't exist in user progress yet, create it
+          await nextStageRef.set(
+            {
+              isActive: true,
+              //  if it's Stage1, automatically mark as completed
+              isCompleted: nextStageId === "Stage1",
+              dateUnlocked: new Date(),
+            },
+            { merge: true }
+          );
+        } else {
+          const nextStageData = nextStageSnap.data();
+
+          // only update if not completed yet
+          if (nextStageData?.isCompleted !== true) {
+            await nextStageRef.set(
+              {
+                isActive: true,
+                //  don't overwrite completion but ensure Stage1 rule applies
+                isCompleted:
+                  nextStageId === "Stage1"
+                    ? true
+                    : nextStageData?.isCompleted || false,
+                dateUnlocked: nextStageData?.dateUnlocked || new Date(),
+              },
+              { merge: true }
+            );
+          }
+        }
 
         return res.status(200).json({
           message: "Next stage unlocked",
           nextStageId,
+          nextStageType,
           isNextStageUnlocked: true,
         });
       }
 
+      // ----------------------------
+      //  handle next level unlock
+      // ----------------------------
       const currentLevelOrder = (
         await db
           .collection(subject)
@@ -433,31 +449,27 @@ fireBaseRoute.post(
           .collection("Levels");
         const currentLevelRef = levelRefPlaceHolder.doc(levelId);
 
-        //sets the last stage of level as completed before proceeding to next
+        // mark last stage as completed
         const lastStageRef = stageRefPlaceHolder.doc(stageId);
         await lastStageRef.set(
           {
             isCompleted: true,
             completedAt: new Date(),
           },
-          {
-            merge: true,
-          }
+          { merge: true }
         );
 
-        //sets the current stage level as completed
+        // mark current level as completed
         await currentLevelRef.set(
           {
             isRewardClaimed: true,
             isCompleted: true,
             completedAt: new Date(),
           },
-          {
-            merge: true,
-          }
+          { merge: true }
         );
 
-        //unlocks the nextlevel
+        // unlock next level
         const nextLevelRef = levelRefPlaceHolder.doc(nextLevelId);
         await nextLevelRef.set(
           {
@@ -469,9 +481,14 @@ fireBaseRoute.post(
           { merge: true }
         );
 
+        //  when creating Stage1 in the next level, mark completed = true
         const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
         await nextStageRef.set(
-          { isActive: true, isCompleted: false, dateUnlocked: new Date() },
+          {
+            isActive: true,
+            isCompleted: true,
+            dateUnlocked: new Date(),
+          },
           { merge: true }
         );
 
@@ -482,6 +499,9 @@ fireBaseRoute.post(
         });
       }
 
+      // ----------------------------
+      // handle next lesson unlock
+      // ----------------------------
       const currentLessonOrder = (
         await db.collection(subject).doc(lessonId).get()
       ).data()?.Lesson;
@@ -524,11 +544,12 @@ fireBaseRoute.post(
           { merge: true }
         );
 
+        //  auto-complete Stage1 on new lesson unlock
         const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
         await nextStageRef.set(
           {
             isActive: true,
-            isCompleted: false,
+            isCompleted: true,
             dateUnlocked: new Date(),
             status: true,
           },
@@ -542,8 +563,9 @@ fireBaseRoute.post(
         });
       }
 
+      //  if all lessons done
       return res.status(200).json({
-        message: `${subject} has been completed! 🎉`,
+        message: `${subject} has been completed! `,
         isWholeTopicFinished: true,
       });
     } catch (error) {
