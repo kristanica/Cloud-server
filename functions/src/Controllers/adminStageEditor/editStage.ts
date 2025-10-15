@@ -1,5 +1,6 @@
 import { bucket, db } from "../../admin/admin";
 import { Request, Response } from "express";
+
 import { filter } from "../nativeExclusive/filter";
 export const editStage = async (req: Request, res: Response) => {
   const { category, lessonId, levelId, stageId, stageType } = req.body as {
@@ -18,7 +19,6 @@ export const editStage = async (req: Request, res: Response) => {
 
   const uploadedFiles = req.files as Express.Multer.File[];
 
-  const xSource = req.headers["x-source"] as string | undefined;
   try {
     if (uploadedFiles && uploadedFiles.length > 0) {
       const uploadPromise = uploadedFiles.map(async (file) => {
@@ -45,21 +45,20 @@ export const editStage = async (req: Request, res: Response) => {
 
       const uploadedUrls = await Promise.all(uploadPromise);
 
-      if (state.blocks) {
-        state.blocks = state.blocks.map((block: any) => {
-          if (block.type === "Image" && block.value) {
-            const matchingUpload = uploadedUrls.find(
-              (upload) => upload.fieldName === block.value
-            );
-
-            if (matchingUpload) {
-              return { ...block, value: matchingUpload.url };
-            }
-
-            return block;
-          }
-        });
+if (state.blocks) {
+  state.blocks = state.blocks.map((block: any) => {
+    if (block.type === "Image" && block.value) {
+      const matchingUpload = uploadedUrls.find(
+        (upload) => upload.fieldName === block.value
+      );
+      if (matchingUpload) {
+        return { ...block, value: matchingUpload.url };
       }
+    }
+    return block; //  Always return a block
+  });
+}
+
     }
     const stageRef = db
       .collection(category)
@@ -69,7 +68,7 @@ export const editStage = async (req: Request, res: Response) => {
       .collection("Stages")
       .doc(stageId);
 
-    if (xSource === "mobile-app") {
+
       const { filteredState, toBeDeleted } = filter(state, stageType);
 
       await stageRef.set(
@@ -96,7 +95,6 @@ export const editStage = async (req: Request, res: Response) => {
         } else {
           console.log("File does not exist");
         }
-      }
 
       return res.status(200).json({
         message: `Stage under ${category}, ${lessonId}, ${levelId} and ${stageId} has been sucessfully been edited! Native!`,
