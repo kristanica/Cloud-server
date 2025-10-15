@@ -9,16 +9,23 @@ const openai = new OpenAI({
   apiKey: process.env.API_KEY,
 });
 export const codeCrafter = async (req: Request, res: Response) => {
-  const { submittedCode, instruction, providedCode, description, subject } = req.body;
+  const { submittedCode, instruction, providedCode, description, subject } =
+    req.body;
+  console.log(
+    submittedCode,
+    instruction,
+    providedCode,
+    description,
+    instruction
+  );
 
-    let providedCodeText = "";
-    if (providedCode) {
-      // Fetch the raw code content from the URL
-      const codeResponse = await axios.get(providedCode);
-      providedCodeText = codeResponse.data;
+  let providedCodeText = "";
+  if (providedCode) {
+    // Fetch the raw code content from the URL
+    const codeResponse = await axios.get(providedCode);
+    providedCodeText = codeResponse.data;
+  }
 
-    }
-  
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
     response_format: { type: "json_object" },
