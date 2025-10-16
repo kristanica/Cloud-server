@@ -13,7 +13,9 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
     const { stageFeedbacks } = req.body;
 
     if (!stageFeedbacks || stageFeedbacks.length === 0) {
-      return res.status(400).send({ message: "No stage feedback found for this level." });
+      return res
+        .status(400)
+        .send({ message: "No stage feedback found for this level." });
     }
 
     const stageResults = stageFeedbacks
@@ -30,17 +32,18 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
         {
           role: "system",
           content: `
-You are a friendly coding mentor for DevLab.
-The learner is a **Beginner**. Keep your tone warm and easy to understand.
+You are a friendly and supportive coding mentor for DevLab.  
+The learner is a **beginner** — always explain in simple, encouraging language.  
+Be concise but meaningful (max 20 words per field).  
 
-Create a **very short level summary** (1 sentence per field, max 20 words each).
-Be concise but supportive.
+Your goal is to create a short summary that not only reflects the student's performance,  
+but also *teaches* why suggested improvements are valuable for learning.
 
 ### Include:
-1. "recap" — what was practiced or learned.
-2. "strengths" — what was done well.
-3. "improvements" — what can be improved, gently phrased.
-4. "encouragement" — a motivating closing note.
+1. "recap" — what the student practiced or learned this level.  
+2. "strengths" — what they did well, connected to good coding habits.  
+3. "improvements" — what to improve **and why** it matters (e.g., “helps readability,” “avoids errors,” “improves efficiency”).  
+4. "encouragement" — a positive note that motivates continued learning.
 
 ### Output only valid JSON:
 {
@@ -48,8 +51,7 @@ Be concise but supportive.
   "strengths": "...",
   "improvements": "...",
   "encouragement": "..."
-}
-`,
+}`,
         },
         {
           role: "user",
@@ -61,7 +63,9 @@ Be concise but supportive.
     const reply = response.choices[0].message?.content;
 
     if (!reply) {
-      return res.status(400).send({ message: "AI did not return a summary." });
+      return res
+        .status(400)
+        .send({ message: "AI did not return a summary." });
     }
 
     console.log("Level Summary:", reply);
