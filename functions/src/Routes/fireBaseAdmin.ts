@@ -25,6 +25,7 @@ import { fetchUsers } from "../Controllers/userManagement/fetchUsers";
 import { suspendUser } from "../Controllers/userManagement/suspendUser";
 import { searchUser } from "../Controllers/userManagement/searchUser";
 import { gameOver } from "../Controllers/gameOver";
+import { suspendAccount } from "../Controllers/userManagement/suspendAccount";
 
 const fireBaseAdminRoute = express.Router();
 
@@ -129,5 +130,6 @@ fireBaseAdminRoute.get("/getUsers", middleWare, fetchUsers);
 fireBaseAdminRoute.get("/searchUser/:name", middleWare, searchUser);
 fireBaseAdminRoute.post("/suspendUser", middleWare, suspendUser);
 fireBaseAdminRoute.post("/gameOver", middleWare, gameOver);
+fireBaseAdminRoute.post("/suspendAccount", middleWare, suspendAccount);
 
 export default fireBaseAdminRoute;

@@ -13,7 +13,9 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
     const { stageFeedbacks } = req.body;
 
     if (!stageFeedbacks || stageFeedbacks.length === 0) {
-      return res.status(400).send({ message: "No stage feedback found for this level." });
+      return res
+        .status(400)
+        .send({ message: "No stage feedback found for this level." });
     }
 
     const stageResults = stageFeedbacks
@@ -34,7 +36,7 @@ You are a friendly coding mentor for DevLab.
 The learner is a **Beginner**. Keep your tone warm and easy to understand.
 
 Create a **very short level summary** (1 sentence per field, max 20 words each).
-Be concise but supportive.
+Be concise and supportive.
 
 ### Include:
 1. "recap" — what was practiced or learned.

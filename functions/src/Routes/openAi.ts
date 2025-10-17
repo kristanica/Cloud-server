@@ -11,7 +11,6 @@ import { feedbackPrompts } from "../Controllers/openAi/feedbackPrompts";
 import { codePlaygroundEval } from "../Controllers/openAi/codePlaygroundEval";
 import { dbPlayGroundEval } from "../Controllers/openAi/dbPlayGroundEval";
 
-
 const openAiRoute = express.Router();
 
 openAiRoute.post("/gamePrompt", middleWare, gamePrompt);
@@ -23,8 +22,6 @@ openAiRoute.post("/codeRushPrompts", middleWare, codeRushPrompts);
 openAiRoute.post("/feedbackPrompts", middleWare, feedbackPrompts);
 
 openAiRoute.post("/codePlaygroundEval", middleWare, codePlaygroundEval);
-openAiRoute.post("/dbPlayGroundEval", middleWare, dbPlayGroundEval);
-
-
+openAiRoute.post("/databasePlaygroundEval", middleWare, dbPlayGroundEval);
 
 export default openAiRoute;

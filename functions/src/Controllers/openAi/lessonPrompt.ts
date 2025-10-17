@@ -8,7 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.API_KEY,
 });
 export const lessonPrompt = async (req: Request, res: Response) => {
-  const { instructions, description, html, css,js } = req.body;
+  const { instructions, description, html, css, js } = req.body;
 
   const response = await openai.chat.completions.create({
     model: "gpt-5-mini",
@@ -53,9 +53,9 @@ Example:
   "suggestion": "Indent nested HTML elements for readability, and always end CSS declarations with semicolons."
 }`,
       },
-  {
-    role: "user",
-    content: `
+      {
+        role: "user",
+        content: `
 INSTRUCTIONS = "${instructions}"
 DESCRIPTION = "${description}"
 HTML = "${html}"
@@ -74,4 +74,3 @@ JS = "${js}"
 
   return res.send({ response: reply });
 };
-//"evaluation": "GOOD | OK | BAD",

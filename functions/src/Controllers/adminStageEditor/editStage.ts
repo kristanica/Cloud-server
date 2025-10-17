@@ -58,6 +58,7 @@ export const editStage = async (req: Request, res: Response) => {
 
             return block;
           }
+          return block;
         });
       }
     }

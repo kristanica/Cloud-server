@@ -45,6 +45,9 @@ Output JSON Format:
   "jsFeedback": "Short, beginner-friendly feedback for JavaScript",
   "overallImprovement": "Brief beginner-friendly improvement suggestion combining all code and also motivate the User"
 }
+
+
+
         `,
       },
       {
@@ -66,3 +69,4 @@ JS = "${js}"
 
   return res.send({ response: reply });
 };
+// IMPORTANT: Include your feedback wrapped in simple HTML tags such as <p></p> or <div></div> using inline CSS styles for styling and highlighting important parts. For example, use <p style="color:red; font-weight:bold;">Important feedback here</p>. Avoid React Native JSX tags like <Text> or <View>, just use standard HTML that can be rendered by a HTML renderer.

@@ -5,6 +5,7 @@ import { db } from "../admin/admin";
 import * as admin from "firebase-admin";
 import { fetchLesson } from "../Controllers/user/fetchLesson";
 import { fetchAchievements } from "../Controllers/user/fetchAchievements";
+import { activeLevels } from "../Controllers/user/activeLevels";
 interface IUserRequest extends express.Request {
   user?: any;
 }
@@ -133,7 +134,6 @@ fireBaseRoute.get(
   }
 );
 
-type progressType = Record<string, boolean>;
 fireBaseRoute.get(
   "/userProgres/:subject",
   middleWare,
@@ -141,9 +141,8 @@ fireBaseRoute.get(
     try {
       const uid = req.user?.uid;
       const { subject } = req.params;
-      const allProgress: progressType = {};
-      const allStages: progressType = {};
-      const allStagesComplete: progressType = {};
+      const allProgress: any = {};
+      const allStages: any = {};
 
       let completedLevels = 0;
       let completedStages = 0;
@@ -163,10 +162,22 @@ fireBaseRoute.get(
           .get();
         for (const levelsTemp of levelsDoc.docs) {
           const levelId = levelsTemp.id;
-          const status = levelsTemp.data().isActive; // gets the status for each levels per specific user
-          allProgress[`${lessonId}-${levelId}`] = status;
+          const isActive: boolean = levelsTemp.data().isActive;
+          const isRewardClaimed: boolean = levelsTemp.data().isRewardClaimed;
+          const dateUnlocked: Date = levelsTemp.data().dateUnlocked;
+          const isCompleted: boolean = levelsTemp.data().isCompleted;
+          const completedAt: Date = levelsTemp.data().completedAt;
 
-          if (status === true) completedLevels += 1;
+          // gets the status for each levels per specific user
+          allProgress[`${lessonId}-${levelId}`] = {
+            isActive: isActive,
+            isRewardClaimed: isRewardClaimed,
+            dateUnlocked: dateUnlocked,
+            isCompleted: isCompleted,
+            completedAt: completedAt,
+          };
+
+          if (isCompleted === true) completedLevels += 1;
 
           const stagesDoc = await db
             .collection("Users")
@@ -181,21 +192,24 @@ fireBaseRoute.get(
             .get();
 
           stagesDoc.forEach((stagesTemp) => {
-            const stageStatus = stagesTemp.data().isActive;
-            allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
-            if (stageStatus === true) completedStages += 1;
-          });
-          stagesDoc.forEach((stagesTemp) => {
-            const stageStatus = stagesTemp.data().isCompleted;
-            allStagesComplete[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
-            if (stageStatus === true) completedStages += 1;
+            const isStageActive: boolean = stagesTemp.data().isActive;
+            const isStageCompleted: boolean = stagesTemp.data().isCompleted;
+            const dateUnlockStage: Date = stagesTemp.data().dateUnlocked;
+            const stageCompletedAt: Date = stagesTemp.data().completedAt;
+            allStages[`${lessonId}-${levelId}-${stagesTemp.id}`] = {
+              isActive: isStageActive,
+              isCompleted: isStageCompleted,
+              dateUnlocked: dateUnlockStage,
+
+              completedAt: stageCompletedAt,
+            };
+            if (isStageActive === true) completedStages += 1;
           });
         }
       }
       return res.status(200).json({
         allProgress,
         allStages,
-        allStagesComplete,
         completedLevels,
         completedStages,
       });
@@ -562,8 +576,57 @@ fireBaseRoute.post(
           isNextLessonUnlocked: true,
         });
       }
+      if (nextLessonQuery.empty) {
+        console.log("is it already empty? HECK YES IT IS");
+        console.log(uid, subject, lessonId, levelId, stageId);
+        const lastLevel = db
+          .collection("Users")
+          .doc(uid)
+          .collection("Progress")
+          .doc(subject)
+          .collection("Lessons")
+          .doc(lessonId)
+          .collection("Levels")
+          .doc(levelId);
+        const lastStage = db
+          .collection("Users")
+          .doc(uid)
+          .collection("Progress")
+          .doc(subject)
+          .collection("Lessons")
+          .doc(lessonId)
+          .collection("Levels")
+          .doc(levelId)
+          .collection("Stages")
+          .doc(stageId);
 
-      //  if all lessons done
+        try {
+          await lastLevel.set(
+            {
+              isRewardClaimed: true,
+              isCompleted: true,
+              completedAt: new Date(),
+            },
+            { merge: true }
+          );
+          console.log("lastLevel updated");
+        } catch (error) {
+          console.error("Error updating lastLevel:", error);
+        }
+
+        try {
+          await lastStage.set(
+            {
+              isCompleted: true,
+              completedAt: new Date(),
+            },
+            { merge: true }
+          );
+          console.log("lastStage updated");
+        } catch (error) {
+          console.error("Error updating lastStage:", error);
+        }
+      }
       return res.status(200).json({
         message: `${subject} has been completed! `,
         isWholeTopicFinished: true,
@@ -616,7 +679,7 @@ fireBaseRoute.get(
       console.log(uid);
       const allProgress: allProgressType = {};
       const allStages: allStagesType = {};
-
+      const specificCompletedLevels: any = {};
       let completedLevels = 0;
       let completedStages = 0;
 
@@ -627,6 +690,7 @@ fireBaseRoute.get(
       for (const subjectLoop of subjectTemp) {
         allProgress[subjectLoop] = {};
         allStages[subjectLoop] = {};
+        specificCompletedLevels[subjectLoop] = 0;
         const lessonRef = await db.collection(subjectLoop).get();
         for (const lessonTemp of lessonRef.docs) {
           const lessonId = lessonTemp.id;
@@ -656,7 +720,10 @@ fireBaseRoute.get(
               completedAt: completedAt,
             };
 
-            if (isActive === true) completedLevels += 1; // Stores all the completed level progress
+            if (isActive === true) {
+              specificCompletedLevels[subjectLoop] += 1;
+              completedLevels += 1;
+            } // Stores all the completed level progress
 
             const stagesDoc = await db
               .collection("Users")
@@ -697,6 +764,7 @@ fireBaseRoute.get(
         allStages,
         completedLevels,
         completedStages,
+        specificCompletedLevels,
       });
     } catch (error) {
       console.log(error);
@@ -708,5 +776,6 @@ fireBaseRoute.get(
 );
 
 fireBaseRoute.get("/achievements/:category", middleWare, fetchAchievements);
+fireBaseRoute.get("/levelCount", middleWare, activeLevels);
 
 export default fireBaseRoute;
