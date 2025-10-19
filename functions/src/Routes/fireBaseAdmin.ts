@@ -26,6 +26,7 @@ import { suspendUser } from "../Controllers/userManagement/suspendUser";
 import { searchUser } from "../Controllers/userManagement/searchUser";
 import { gameOver } from "../Controllers/gameOver";
 import { suspendAccount } from "../Controllers/userManagement/suspendAccount";
+import { deleteUser } from "../Controllers/userManagement/deleteUser";
 
 const fireBaseAdminRoute = express.Router();
 
@@ -131,5 +132,5 @@ fireBaseAdminRoute.get("/searchUser/:name", middleWare, searchUser);
 fireBaseAdminRoute.post("/suspendUser", middleWare, suspendUser);
 fireBaseAdminRoute.post("/gameOver", middleWare, gameOver);
 fireBaseAdminRoute.post("/suspendAccount", middleWare, suspendAccount);
-
+fireBaseAdminRoute.post("/deleteUser", middleWare, deleteUser);
 export default fireBaseAdminRoute;

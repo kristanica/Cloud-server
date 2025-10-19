@@ -10,6 +10,7 @@ import { feedbackPrompts } from "../Controllers/openAi/feedbackPrompts";
 
 import { codePlaygroundEval } from "../Controllers/openAi/codePlaygroundEval";
 import { dbPlayGroundEval } from "../Controllers/openAi/dbPlayGroundEval";
+import { codeWhisper } from "../Controllers/openAi/codeWhisper";
 
 const openAiRoute = express.Router();
 
@@ -23,5 +24,5 @@ openAiRoute.post("/feedbackPrompts", middleWare, feedbackPrompts);
 
 openAiRoute.post("/codePlaygroundEval", middleWare, codePlaygroundEval);
 openAiRoute.post("/databasePlaygroundEval", middleWare, dbPlayGroundEval);
-
+openAiRoute.post("/codeWhisper", middleWare, codeWhisper);
 export default openAiRoute;

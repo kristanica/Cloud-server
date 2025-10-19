@@ -24,7 +24,7 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
           `${i + 1}. Stage ID: ${s.stageId}\n   Evaluation: ${s.evaluation}\n   Feedback: "${s.feedback}"`
       )
       .join("\n\n");
-
+    console.log(stageResults);
     const response = await openai.chat.completions.create({
       model: "gpt-5-mini",
       response_format: { type: "json_object" },
@@ -32,30 +32,38 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
         {
           role: "system",
           content: `
-You are a friendly coding mentor for DevLab.
-The learner is a **Beginner**. Keep your tone warm and easy to understand.
+You are a supportive coding mentor for DevLab, helping beginners learn programming.
 
-Create a **very short level summary** (1 sentence per field, max 20 words each).
-Be concise and supportive.
+Analyze the stage-by-stage performance data provided and create a concise level completion summary.
 
-### Include:
-1. "recap" — what was practiced or learned.
-2. "strengths" — what was done well.
-3. "improvements" — what can be improved, gently phrased.
-4. "encouragement" — a motivating closing note.
+**Guidelines:**
+- Write in a warm, encouraging tone suitable for beginners
+- Keep each field to 1-2 sentences (max 25 words per field)
+- Focus on specific skills practiced, not generic praise
+- When mentioning improvements, be constructive and specific
+- Base your summary on the actual evaluation data provided
 
-### Output only valid JSON:
+**Required JSON format:**
 {
-  "recap": "...",
-  "strengths": "...",
-  "improvements": "...",
-  "encouragement": "..."
+  "recap": "Summarize the main coding concepts or skills practiced across all stages",
+  "strengths": "Highlight specific things done well based on the evaluations (e.g., correct tag usage, proper syntax)",
+  "improvements": "Suggest one concrete, gentle improvement based on feedback (if all correct, mention consistency or best practices)",
+  "encouragement": "End with a personalized motivational message that acknowledges their progress"
 }
+
+**Important:** 
+- Reference specific technologies/concepts from the evaluations (e.g., HTML tags, CSS properties, JavaScript syntax)
+- If all feedback is "Correct", focus improvements on code quality, readability, or best practices
+- Make it personal and specific to their actual performance
 `,
         },
         {
           role: "user",
-          content: `Here are the stage results:\n${stageResults}`,
+          content: `Analyze these stage completion results and provide a performance summary:
+
+${stageResults}
+
+Generate a JSON summary following the required format.`,
         },
       ],
     });

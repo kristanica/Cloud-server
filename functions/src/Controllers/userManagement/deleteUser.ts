@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { auth, db } from "../../admin/admin";
+import { getFirestore } from "firebase-admin/firestore";
 
 export const deleteUser = async (req: Request, res: Response) => {
   const { uid }: { uid: string } = req.body;
@@ -9,7 +10,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
     const userRef = db.collection("Users").doc(uid);
     promise.push(auth.deleteUser(uid));
-    promise.push(userRef.delete());
+    promise.push(getFirestore().recursiveDelete(userRef));
 
     await Promise.all(promise);
 
