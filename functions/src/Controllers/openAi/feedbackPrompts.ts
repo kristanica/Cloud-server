@@ -26,7 +26,7 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
       .join("\n\n");
     console.log(stageResults);
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4.1",
       response_format: { type: "json_object" },
       messages: [
         {

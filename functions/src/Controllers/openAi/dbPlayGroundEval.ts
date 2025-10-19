@@ -12,7 +12,7 @@ export const dbPlayGroundEval = async (req: Request, res: Response) => {
   const { sql } = req.body;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-5-mini",
+    model: "gpt-4.1",
     response_format: { type: "json_object" },
     messages: [
       {

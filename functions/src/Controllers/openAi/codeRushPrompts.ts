@@ -10,6 +10,18 @@ const openai = new OpenAI({
 export const codeRushPrompts = async (req: Request, res: Response) => {
   const { submittedCode,instruction,providedCode, description,subject } = req.body;
 
+const providedCodeText =
+  typeof providedCode === "object"
+    ? JSON.stringify(providedCode, null, 2)
+    : String(providedCode || "");
+
+    const SubmittedCodeText =
+  typeof submittedCode === "object"
+    ? JSON.stringify(submittedCode, null, 2)
+    : String(submittedCode || "");
+
+
+
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
     response_format: { type: "json_object" },
@@ -101,6 +113,7 @@ Output format:
   "correct": true/false,
   "evaluation": "Correct" or "Incorrect",
   "feedback": "Brief feedback why the code is correct or wrong"
+  "Submit" : SUBMITTEDCODE
 }
 
 Examples:
@@ -109,20 +122,22 @@ If correct:
   "correct": true,
   "evaluation": "Correct",
   "feedback": "The submitted code meets the instruction with proper structure and syntax."
+  "Submit" : SUBMITTEDCODE
 }
 If incorrect:
 {
   "correct": false,
   "evaluation": "Incorrect",
   "feedback": "A closing tag is missing, the CSS selector syntax is incorrect, or the query is not returning expected results."
+  "Submit" : SUBMITTEDCODE
 }`,
     },
       {
         role: "user",
         content: `
-SUBMITTEDCODE = "${submittedCode}"
+SUBMITTEDCODE = "${SubmittedCodeText}"
 INSTRUCTION = "${instruction}"
-PROVIDEDCODE = "${providedCode}"
+PROVIDEDCODE = "${providedCodeText}"
 DESCRIPTION = "${description}"
 SUBJECT = "${subject}"
         `,
