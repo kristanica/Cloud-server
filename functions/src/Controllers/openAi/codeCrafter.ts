@@ -16,8 +16,12 @@ export const codeCrafter = async (req: Request, res: Response) => {
       // Fetch the raw code content from the URL
       const codeResponse = await axios.get(providedCode);
       providedCodeText = codeResponse.data;
-
     }
+
+  const SubmittedCodeText =
+  typeof providedCode === "object"
+    ? JSON.stringify(submittedCode, null, 2)
+    : String(providedCode || "");
   
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
@@ -114,7 +118,7 @@ If incorrect:
       {
         role: "user",
         content: `
-SUBMITTEDCODE = "${submittedCode}"
+SUBMITTEDCODE = "${SubmittedCodeText}"
 INSTRUCTION = "${instruction}"
 PROVIDEDCODE = "${providedCodeText}"
 DESCRIPTION = "${description}"

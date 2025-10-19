@@ -12,7 +12,7 @@ export const codePlaygroundEval = async (req: Request, res: Response) => {
   const { html, css, js } = req.body;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-5-mini",
+    model: "gpt-4.1",
     response_format: { type: "json_object" },
     messages: [
       {

@@ -11,7 +11,7 @@ export const brainBytesPrompts = async (req: Request, res: Response) => {
   const {answer, instruction, description, a, b, c, d} = req.body;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4.1",
     messages: [
       {
         role: "user",
