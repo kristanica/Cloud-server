@@ -16,9 +16,9 @@ const providedCodeText =
     : String(providedCode || "");
 
     const SubmittedCodeText =
-  typeof providedCode === "object"
+  typeof submittedCode === "object"
     ? JSON.stringify(submittedCode, null, 2)
-    : String(providedCode || "");
+    : String(submittedCode || "");
 
 
 
