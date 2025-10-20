@@ -35,6 +35,10 @@ export const addLevel = async (req: Request, res: Response) => {
     batch.set(newLevelRef, {
       levelOrder: nextNumber,
       createdAt: new Date(),
+      description: "This is a newly added level, feel free to edit this!",
+      title: "This is a template!",
+      expReward: 1,
+      coinsReward: 1,
     });
 
     const newStageRef = newLevelRef.collection("Stages").doc("Stage1");

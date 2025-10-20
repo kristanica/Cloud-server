@@ -24,7 +24,7 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
           `${i + 1}. Stage ID: ${s.stageId}\n   Evaluation: ${s.evaluation}\n   Feedback: "${s.feedback}"`
       )
       .join("\n\n");
-
+    console.log(stageResults);
     const response = await openai.chat.completions.create({
       model: "gpt-4.1",
       response_format: { type: "json_object" },
@@ -32,30 +32,38 @@ export const feedbackPrompts = async (req: Request, res: Response) => {
         {
           role: "system",
           content: `
-You are a friendly and supportive coding mentor for DevLab.  
-The learner is a **beginner** — always explain in simple, encouraging language.  
-Be concise but meaningful (max 20 words per field).  
+You are a supportive coding mentor for DevLab, helping beginners learn programming.
 
-Your goal is to create a short summary that not only reflects the student's performance,  
-but also *teaches* why suggested improvements are valuable for learning.
+Analyze the stage-by-stage performance data provided and create a concise level completion summary.
 
-### Include:
-1. "recap" — what the student practiced or learned this level.  
-2. "strengths" — what they did well, connected to good coding habits.  
-3. "improvements" — what to improve **and why** it matters (e.g., “helps readability,” “avoids errors,” “improves efficiency”).  
-4. "encouragement" — a positive note that motivates continued learning.
+**Guidelines:**
+- Write in a warm, encouraging tone suitable for beginners
+- Keep each field to 1-2 sentences (max 25 words per field)
+- Focus on specific skills practiced, not generic praise
+- When mentioning improvements, be constructive and specific
+- Base your summary on the actual evaluation data provided
 
-### Output only valid JSON:
+**Required JSON format:**
 {
-  "recap": "...",
-  "strengths": "...",
-  "improvements": "...",
-  "encouragement": "..."
-}`,
+  "recap": "Summarize the main coding concepts or skills practiced across all stages",
+  "strengths": "Highlight specific things done well based on the evaluations (e.g., correct tag usage, proper syntax)",
+  "improvements": "Suggest one concrete, gentle improvement based on feedback (if all correct, mention consistency or best practices)",
+  "encouragement": "End with a personalized motivational message that acknowledges their progress"
+}
+
+**Important:** 
+- Reference specific technologies/concepts from the evaluations (e.g., HTML tags, CSS properties, JavaScript syntax)
+- If all feedback is "Correct", focus improvements on code quality, readability, or best practices
+- Make it personal and specific to their actual performance
+`,
         },
         {
           role: "user",
-          content: `Here are the stage results:\n${stageResults}`,
+          content: `Analyze these stage completion results and provide a performance summary:
+
+${stageResults}
+
+Generate a JSON summary following the required format.`,
         },
       ],
     });
@@ -63,9 +71,7 @@ but also *teaches* why suggested improvements are valuable for learning.
     const reply = response.choices[0].message?.content;
 
     if (!reply) {
-      return res
-        .status(400)
-        .send({ message: "AI did not return a summary." });
+      return res.status(400).send({ message: "AI did not return a summary." });
     }
 
     console.log("Level Summary:", reply);

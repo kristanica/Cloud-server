@@ -16,8 +16,12 @@ export const codeCrafter = async (req: Request, res: Response) => {
       // Fetch the raw code content from the URL
       const codeResponse = await axios.get(providedCode);
       providedCodeText = codeResponse.data;
-
     }
+
+  const SubmittedCodeText =
+  typeof submittedCode === "object"
+    ? JSON.stringify(submittedCode, null, 2)
+    : String(submittedCode || "");
   
   const response = await openai.chat.completions.create({
     model: "gpt-5-mini",
@@ -89,7 +93,8 @@ Your output must be a JSON object as follows:
   "correct": true/false,
   "evaluation": "Correct" or "Incorrect",
   "feedback": "Brief feedback why the code is correct or wrong",
-  "PROVIDE": PROVIDEDCODE
+  "PROVIDE": PROVIDEDCODE,
+  "submitted": SUBMITTEDCODE,
 }
 
 Examples:
@@ -99,7 +104,8 @@ If correct:
   "correct": true,
   "evaluation": "Correct",
   "feedback": "The missing closing tag for <p> was fixed.",
-"PROVIDE": PROVIDEDCODE
+"PROVIDE": PROVIDEDCODE,
+"submitted": SUBMITTEDCODE,
 }
 
 If incorrect:
@@ -107,14 +113,15 @@ If incorrect:
   "correct": false,
   "evaluation": "Incorrect",
   "feedback": "A closing tag is missing.",
-"PROVIDE": PROVIDEDCODE
+"PROVIDE": PROVIDEDCODE,
+"submitted": SUBMITTEDCODE,
 }
 `,
       },
       {
         role: "user",
         content: `
-SUBMITTEDCODE = "${submittedCode}"
+SUBMITTEDCODE = "${SubmittedCodeText}"
 INSTRUCTION = "${instruction}"
 PROVIDEDCODE = "${providedCodeText}"
 DESCRIPTION = "${description}"
