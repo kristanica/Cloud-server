@@ -27,6 +27,8 @@ import { searchUser } from "../Controllers/userManagement/searchUser";
 import { gameOver } from "../Controllers/gameOver";
 import { suspendAccount } from "../Controllers/userManagement/suspendAccount";
 import { deleteUser } from "../Controllers/userManagement/deleteUser";
+import { deleteSpecificProgress } from "../Controllers/userManagement/deleteSpecificProgress";
+import { deleteAllProgress } from "../Controllers/userManagement/deleteAllProgress";
 
 const fireBaseAdminRoute = express.Router();
 
@@ -133,4 +135,6 @@ fireBaseAdminRoute.post("/suspendUser", middleWare, suspendUser);
 fireBaseAdminRoute.post("/gameOver", middleWare, gameOver);
 fireBaseAdminRoute.post("/suspendAccount", middleWare, suspendAccount);
 fireBaseAdminRoute.post("/deleteUser", middleWare, deleteUser);
+fireBaseAdminRoute.post("/progress/reset", middleWare, deleteSpecificProgress);
+fireBaseAdminRoute.post("/reset", middleWare, deleteAllProgress);
 export default fireBaseAdminRoute;
