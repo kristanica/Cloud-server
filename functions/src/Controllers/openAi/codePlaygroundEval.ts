@@ -10,7 +10,6 @@ const openai = new OpenAI({
 
 export const codePlaygroundEval = async (req: Request, res: Response) => {
   const { html, css, js } = req.body;
-
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
     response_format: { type: "json_object" },
@@ -45,9 +44,6 @@ Output JSON Format:
   "jsFeedback": "Short, beginner-friendly feedback for JavaScript",
   "overallImprovement": "Brief beginner-friendly improvement suggestion combining all code and also motivate the User"
 }
-
-
-
         `,
       },
       {

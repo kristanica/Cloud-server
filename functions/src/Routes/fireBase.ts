@@ -58,7 +58,7 @@ fireBaseRoute.post(
   middleWare,
   async (req: IUserRequest, res: Response) => {
     const uid = req.user?.uid; // userid
-    const { itemId, itemCost, itemName } = req.body;
+    const { itemId, itemCost, itemName, itemIcon } = req.body;
     // Can pass the user's currency in the body instead, but might stick to this.
     try {
       const userRef = db.collection("Users").doc(uid); // queries user data
@@ -85,20 +85,19 @@ fireBaseRoute.post(
 
       const inventorySnap = await inventoryRef.get();
 
-if (inventorySnap.exists) {
-  await inventoryRef.update({
-    quantity: admin.firestore.FieldValue.increment(1),
-    Icon: itemName || "",
-    title: itemName.replace("_Icon.png", ""),
-  });
-} else {
-  await inventoryRef.set({
-    quantity: 1,
-    Icon: itemName || "",
-    title: itemName.replace("_Icon.png", ""),
-  });
-}
-
+      if (inventorySnap.exists) {
+        await inventoryRef.update({
+          quantity: admin.firestore.FieldValue.increment(1),
+          Icon: itemName || "",
+          title: itemName.replace("_Icon.png", ""),
+        });
+      } else {
+        await inventoryRef.set({
+          quantity: 1,
+          Icon: itemName || "",
+          title: itemName.replace("_Icon.png", ""),
+        });
+      }
 
       return res.status(200).json({
         message: "sucess on purchasing item",
@@ -148,7 +147,7 @@ fireBaseRoute.get(
       const { subject } = req.params;
       const allProgress: any = {};
       const allStages: any = {};
-      const  allStagesComplete: any = {};
+      const allStagesComplete: any = {};
       let completedLevels = 0;
       let completedStages = 0;
       const lessonRef = await db.collection(subject).get();
@@ -207,9 +206,10 @@ fireBaseRoute.get(
             };
             if (isStageActive === true) completedStages += 1;
           });
-            stagesDoc.forEach((stagesTemp) => {
+          stagesDoc.forEach((stagesTemp) => {
             const stageStatus = stagesTemp.data().isCompleted;
-            allStagesComplete[`${lessonId}-${levelId}-${stagesTemp.id}`] = stageStatus;
+            allStagesComplete[`${lessonId}-${levelId}-${stagesTemp.id}`] =
+              stageStatus;
             if (stageStatus === true) completedStages += 1;
           });
         }
@@ -492,47 +492,46 @@ fireBaseRoute.post(
         );
       }
 
-if (!nextLevelQuery.empty) {
-  const nextLevelDoc = nextLevelQuery.docs[0];
-  const nextLevelId = nextLevelDoc.id;
+      if (!nextLevelQuery.empty) {
+        const nextLevelDoc = nextLevelQuery.docs[0];
+        const nextLevelId = nextLevelDoc.id;
 
-  const nextLevelRef = levelRefPlaceHolder.doc(nextLevelId);
-  const nextLevelSnap = await nextLevelRef.get();
+        const nextLevelRef = levelRefPlaceHolder.doc(nextLevelId);
+        const nextLevelSnap = await nextLevelRef.get();
 
-  if (!nextLevelSnap.exists) {
-    // Only create if it doesn't exist
-    await nextLevelRef.set(
-      {
-        isActive: true,
-        isRewardClaimed: false,
-        dateUnlocked: new Date(),
-        isCompleted: false,
-      },
-      { merge: true }
-    );
-  }
+        if (!nextLevelSnap.exists) {
+          // Only create if it doesn't exist
+          await nextLevelRef.set(
+            {
+              isActive: true,
+              isRewardClaimed: false,
+              dateUnlocked: new Date(),
+              isCompleted: false,
+            },
+            { merge: true }
+          );
+        }
 
-  // auto-complete Stage1 on next level if not exist
-  const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
-  const nextStageSnap = await nextStageRef.get();
-  if (!nextStageSnap.exists) {
-    await nextStageRef.set(
-      {
-        isActive: true,
-        isCompleted: true,
-        dateUnlocked: new Date(),
-      },
-      { merge: true }
-    );
-  }
+        // auto-complete Stage1 on next level if not exist
+        const nextStageRef = nextLevelRef.collection("Stages").doc("Stage1");
+        const nextStageSnap = await nextStageRef.get();
+        if (!nextStageSnap.exists) {
+          await nextStageRef.set(
+            {
+              isActive: true,
+              isCompleted: true,
+              dateUnlocked: new Date(),
+            },
+            { merge: true }
+          );
+        }
 
-  return res.status(200).json({
-    message: "Next level unlocked",
-    nextLevelId,
-    isNextLevelUnlocked: true,
-  });
-}
-
+        return res.status(200).json({
+          message: "Next level unlocked",
+          nextLevelId,
+          isNextLevelUnlocked: true,
+        });
+      }
 
       // ----------------------------
       // Handle next lesson unlock
@@ -590,6 +589,35 @@ if (!nextLevelQuery.empty) {
           },
           { merge: true }
         );
+        const lastLevel = levelRefPlaceHolder.doc(levelId);
+        const lastStage = stageRefPlaceHolder.doc(stageId);
+        const lastLesson = db
+          .collection("Users")
+          .doc(uid)
+          .collection("Progress")
+          .doc(subject)
+          .collection("Lessons")
+          .doc(lessonId);
+        await lastLesson.set(
+          { isCompleted: true, completedAt: new Date() },
+          { merge: true }
+        );
+        await lastLevel.set(
+          {
+            isRewardClaimed: true,
+            isCompleted: true,
+            completedAt: new Date(),
+          },
+          { merge: true }
+        );
+
+        await lastStage.set(
+          {
+            isCompleted: true,
+            completedAt: new Date(),
+          },
+          { merge: true }
+        );
 
         return res.status(200).json({
           message: "Next lesson unlocked",
@@ -601,35 +629,8 @@ if (!nextLevelQuery.empty) {
       // ----------------------------
       // Handle last lesson / last level / last stage
       // ----------------------------
-      const lastLevel = levelRefPlaceHolder.doc(levelId);
-      const lastStage = stageRefPlaceHolder.doc(stageId);
-
-      await lastLevel.set(
-        {
-          isRewardClaimed: true,
-          isCompleted: true,
-          completedAt: new Date(),
-        },
-        { merge: true }
-      );
-
-      await lastStage.set(
-        {
-          isCompleted: true,
-          completedAt: new Date(),
-        },
-        { merge: true }
-      );
 
       // Optional: mark lesson completed
-      const lessonRef = db
-        .collection("Users")
-        .doc(uid)
-        .collection("Progress")
-        .doc(subject)
-        .collection("Lessons")
-        .doc(lessonId);
-      await lessonRef.set({ isCompleted: true, completedAt: new Date() }, { merge: true });
 
       return res.status(200).json({
         message: `${subject} has been completed!`,
@@ -644,7 +645,6 @@ if (!nextLevelQuery.empty) {
     }
   }
 );
-
 
 // Return type for level progress
 type allProgressType = Record<
@@ -814,7 +814,6 @@ fireBaseRoute.get(
     }
   }
 );
-
 
 fireBaseRoute.get("/achievements/:category", middleWare, fetchAchievements);
 fireBaseRoute.get("/levelCount", middleWare, activeLevels);

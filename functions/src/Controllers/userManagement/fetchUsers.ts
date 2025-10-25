@@ -21,6 +21,7 @@ export const fetchUsers = async (req: Request, res: Response) => {
     for (const snap of userSnapShot.docs) {
       const userId = snap.id;
       const isAccountSuspended = (await auth.getUser(userId)).disabled;
+
       const userInfo = snap.data() as userDataProps;
 
       const levelCount: Record<string, number> = {};
@@ -44,17 +45,34 @@ export const fetchUsers = async (req: Request, res: Response) => {
             .collection("Lessons")
             .doc(lessonId)
             .collection("Levels")
+            .where("isCompleted", "==", true) // ✅ only fetch completed levels
             .get();
           userSubjectLevelCount += levelRef.size;
         }
 
         levelCount[subjectLoop] = userSubjectLevelCount;
       }
+      const userItems = userRef.doc(userId).collection("Inventory");
+      const itemSnap = await userItems.get();
+
+      if (itemSnap.empty) return;
+      let inventoryItems: { title: string; quantity: number }[] = [];
+
+      if (!itemSnap.empty) {
+        inventoryItems = itemSnap.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            title: data.title || "",
+            quantity: data.quantity || 0,
+          };
+        });
+      }
       userDataTemp.push({
         id: userId,
         ...userInfo,
         isAccountSuspended: isAccountSuspended,
         levelCount,
+        inventory: inventoryItems,
       });
     }
 
