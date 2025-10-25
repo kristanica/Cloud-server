@@ -24,7 +24,7 @@ export const codeCrafter = async (req: Request, res: Response) => {
     : String(submittedCode || "");
   
   const response = await openai.chat.completions.create({
-    model: "gpt-5-mini",
+    model: "gpt-4.1",
     response_format: { type: "json_object" },
     messages: [
       {

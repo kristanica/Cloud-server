@@ -15,12 +15,6 @@ export const lessonPrompt = async (req: Request, res: Response) => {
     return res.status(400).send({ message: "Subject is required." });
   }
 
-  const subjectRules = `
-Teaching Rule for Subject (strict):
-- If subject is HTML: ignore CSS and JS completely. Do NOT comment on them at all.
-- If subject is CSS: ignore JS completely. Do NOT comment on JS.
-- If subject is JS: evaluate HTML, CSS, and JS.
-`;
 
   const emptyCodeRules = `
 Additional Rule:
@@ -30,7 +24,7 @@ Additional Rule:
 `;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-5-mini",
+    model: "gpt-4.1",
     response_format: { type: "json_object" },
     messages: [
       {
@@ -41,8 +35,12 @@ You are an Expert Frontend Developer and AI Teacher for DevLab's Lesson Mode.
 Your role is to teach and mentor beginners on HTML, CSS, and JavaScript — not just describe code, but explain the *why* behind it.  
 Be friendly, concise (max 80 words), and always give meaningful feedback that helps the student *understand and improve*.
 
-${subjectRules}
 ${emptyCodeRules}
+
+Additional Evaluation Rule:
+- Even if the main subject is "JavaScript", "CSS", or "HTML", always check all provided code blocks for syntax or structural errors.
+- However, the *main feedback focus* should remain on the active subject (e.g., JavaScript logic if subject = "JS").
+- If syntax issues exist in other code blocks (e.g., invalid HTML tags or CSS syntax), briefly point them out and correct them.
 
 Inputs you receive:
 - HTML, CSS, JavaScript code blocks (may be empty if not used).  

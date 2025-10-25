@@ -85,15 +85,20 @@ fireBaseRoute.post(
 
       const inventorySnap = await inventoryRef.get();
 
-      if (inventorySnap.exists) {
-        await inventoryRef.update({
-          quantity: admin.firestore.FieldValue.increment(1),
-          Icon: itemName || "",
-          title: itemName.replace("_Icon", ""),
-        });
-      } else {
-        await inventoryRef.set({ quantity: 1, Icon: itemName || "" });
-      }
+if (inventorySnap.exists) {
+  await inventoryRef.update({
+    quantity: admin.firestore.FieldValue.increment(1),
+    Icon: itemName || "",
+    title: itemName.replace("_Icon.png", ""),
+  });
+} else {
+  await inventoryRef.set({
+    quantity: 1,
+    Icon: itemName || "",
+    title: itemName.replace("_Icon.png", ""),
+  });
+}
+
 
       return res.status(200).json({
         message: "sucess on purchasing item",
@@ -774,6 +779,42 @@ fireBaseRoute.get(
     }
   }
 );
+
+// para sa useGameMode Data q sa web
+fireBaseRoute.get(
+  "/getGameMode/:subject/:lessonId/:levelId/:stageId",
+  middleWare,
+  async (req: Request, res: Response) => {
+    try {
+      const { subject, lessonId, levelId, stageId } = req.params;
+
+      const levelRef = db
+        .collection(subject)
+        .doc(lessonId)
+        .collection("Levels")
+        .doc(levelId);
+      const levelSnap = await levelRef.get();
+
+      const stageRef = levelRef.collection("Stages").doc(stageId);
+      const stageSnap = await stageRef.get();
+
+      if (!levelSnap.exists || !stageSnap.exists) {
+        return res.status(404).json({ message: "Level or Stage not found" });
+      }
+
+      return res.status(200).json({
+        level: { id: levelSnap.id, ...levelSnap.data() },
+        stage: { id: stageSnap.id, ...stageSnap.data() },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({
+        message: "Error fetching specific game mode",
+      });
+    }
+  }
+);
+
 
 fireBaseRoute.get("/achievements/:category", middleWare, fetchAchievements);
 fireBaseRoute.get("/levelCount", middleWare, activeLevels);
