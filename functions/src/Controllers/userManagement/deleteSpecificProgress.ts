@@ -24,8 +24,9 @@ export const deleteSpecificProgress = async (req: Request, res: Response) => {
       const levelSnap = await lessonDoc.ref.collection("Levels").get();
 
       for (const levelDoc of levelSnap.docs) {
+        const isLevel1 = levelDoc.id === "Level1";
         batch.update(levelDoc.ref, {
-          isActive: levelDoc.id === "Level1" ? true : false,
+          isActive: isLevel1 ? true : false,
           isCompletedAt:
             levelDoc.id === "Level1" ? new Date() : FieldValue.delete(),
           dateUnlocked: FieldValue.delete(),
@@ -36,12 +37,13 @@ export const deleteSpecificProgress = async (req: Request, res: Response) => {
 
         // resets stages per level
         for (const stageDoc of stageSnap.docs) {
+          const isStage1 = stageDoc.id === "Stage1";
           batch.update(stageDoc.ref, {
             completedAt: FieldValue.delete(),
             dateUnlocked:
-              stageDoc.id === "Stage1" ? new Date() : FieldValue.delete(),
-            isActive: stageDoc.id === "Stage1" ? true : false,
-            isCompleted: stageDoc.id === "Stage1" ? true : false,
+              isLevel1 && isStage1 ? new Date() : FieldValue.delete(),
+            isActive: isLevel1 && isStage1 ? true : false,
+            isCompleted: isLevel1 && isStage1 ? true : false,
           });
         }
       }
