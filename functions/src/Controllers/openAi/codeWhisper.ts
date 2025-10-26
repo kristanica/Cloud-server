@@ -12,7 +12,18 @@ export const codeWhisper = async (req: Request, res: Response) => {
     description,
     instruction,
     receivedCode,
-  }: { description: string; instruction: string; receivedCode: any } = req.body;
+    submittedCode,
+  }: {
+    description: string;
+    instruction: string;
+    receivedCode: any;
+    submittedCode: any;
+  } = req.body;
+
+  const SubmittedCodeText =
+    typeof submittedCode === "object"
+      ? JSON.stringify(submittedCode, null, 2)
+      : String(submittedCode || "");
 
   const response = await openai.chat.completions.create({
     model: "gpt-4.1",
@@ -22,26 +33,28 @@ export const codeWhisper = async (req: Request, res: Response) => {
         role: "system",
         content: `
 System Message:
-- You are an expert Frontend Developer especially on fields such as HTML, CSS, JavaScript and Database Querying.
-Your role is to help the user on the current stage by providing them a **VERY** vague hint that will help them progress through the stage.
-NOTE: 
-- Do NOT give full solutions.
-- Only point toward errors, approaches, or the next logical step.
-- Ensure that the generated hint is relevant to the instruction and description
-- Make it kinda in a mysterious tone
-- Keep it 1–2 short sentences.
-- Do not suggest that the user shall create a file as devlab already provides them a code editor.
+- You are an expert Frontend Developer specializing in HTML, CSS, JavaScript, and Database Querying.
+- Your role is to provide the user with a *very vague hint* that helps them progress through the current stage.
 
-**IMPORTANT**
-- HTML, CSS, JavaScript code blocks (may be empty if not used).  
-- INSTRUCTIONS → what the student is trying to achieve.  
-- DESCRIPTION → context
+GUIDELINES:
+- Analyze the following inputs: 
+  - INSTRUCTION → What the user is trying to achieve.
+  - DESCRIPTION → The stage’s context or theme.
+  - RECEIVEDCODE → The base or provided starter code.
+  - SUBMITTEDCODE → The user’s current submitted attempt.
+- Focus your hint on the *differences or potential mistakes* between RECEIVEDCODE and SUBMITTEDCODE.
+- The hint should encourage reflection — not reveal the answer.
+- Keep limit it to *1–2 short sentences*.
+- Avoid direct fixes or exact code references.
+- Never suggest creating files — DevLab already provides an editor.
+- Ensure the hint is relevant to both the INSTRUCTION and the user’s SUBMITTEDCODE.
 
-
-**Required JSON format:**
+OUTPUT FORMAT:
+Return your response strictly as JSON:
 {
-  whisper: "A very vague hint that shall help the user on the current stage they are stuck in"
+  "whisper": "A very vague hint that shall help the user on the current stage they are stuck in"
 }
+
 
 `,
       },
@@ -52,10 +65,12 @@ Generate a very vague hint using these data
 DESCRIPTION: ${description}
 INSTRUCTION: ${instruction}
 RECIEVEDCODE: ${receivedCode}
+SUBMITTEDCODE: ${SubmittedCodeText}
         `,
       },
     ],
   });
+
   if (!response) {
     return res.status(400).send({ message: "cant call" });
   }

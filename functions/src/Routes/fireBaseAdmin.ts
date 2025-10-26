@@ -29,6 +29,8 @@ import { suspendAccount } from "../Controllers/userManagement/suspendAccount";
 import { deleteUser } from "../Controllers/userManagement/deleteUser";
 import { deleteSpecificProgress } from "../Controllers/userManagement/deleteSpecificProgress";
 import { deleteAllProgress } from "../Controllers/userManagement/deleteAllProgress";
+import { editUser } from "../Controllers/userManagement/editUser";
+import { deleteAchievement } from "../Controllers/userManagement/deleteAchievement";
 
 const fireBaseAdminRoute = express.Router();
 
@@ -137,4 +139,6 @@ fireBaseAdminRoute.post("/suspendAccount", middleWare, suspendAccount);
 fireBaseAdminRoute.post("/deleteUser", middleWare, deleteUser);
 fireBaseAdminRoute.post("/progress/reset", middleWare, deleteSpecificProgress);
 fireBaseAdminRoute.post("/reset", middleWare, deleteAllProgress);
+fireBaseAdminRoute.post("/editUser", middleWare, editUser);
+fireBaseAdminRoute.delete("/deleteAchievement", middleWare, deleteAchievement);
 export default fireBaseAdminRoute;

@@ -53,26 +53,61 @@ export const fetchUsers = async (req: Request, res: Response) => {
         levelCount[subjectLoop] = userSubjectLevelCount;
       }
       const userItems = userRef.doc(userId).collection("Inventory");
+
       const itemSnap = await userItems.get();
 
-      if (itemSnap.empty) return;
-      let inventoryItems: { title: string; quantity: number }[] = [];
+      // NOTE: STIll UNUSED, COMPLECATED AS FUCK
+      const inventoryItems: Record<
+        string,
+        {
+          title: string;
+          quantity: number;
+        }
+      > = {};
 
-      if (!itemSnap.empty) {
-        inventoryItems = itemSnap.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            title: data.title || "",
-            quantity: data.quantity || 0,
-          };
-        });
-      }
+      itemSnap.docs.map((doc) => {
+        const data = doc.data();
+        inventoryItems[doc.id] = {
+          title: data.title || "",
+          quantity: data.quantity || 0,
+        };
+      }) || [];
+      const groupedAchievements: Record<
+        "Html" | "Css" | "JavaScript" | "Database",
+        { quantity: number }
+      > = {
+        Html: {
+          quantity: 0,
+        },
+        Css: {
+          quantity: 0,
+        },
+        JavaScript: {
+          quantity: 0,
+        },
+        Database: {
+          quantity: 0,
+        },
+      };
+      const userAchievements = userRef.doc(userId).collection("Achievements");
+      const achievementsSnap = await userAchievements.get();
+      achievementsSnap.docs.forEach((doc) => {
+        if (doc.id.startsWith("Html_")) groupedAchievements.Html.quantity += 1;
+        else if (doc.id.startsWith("Css_"))
+          groupedAchievements.Css.quantity += 1;
+        else if (doc.id.startsWith("Js_"))
+          groupedAchievements.JavaScript.quantity += 1;
+        else if (doc.id.startsWith("Db_"))
+          groupedAchievements.Database.quantity += 1;
+      });
+
       userDataTemp.push({
         id: userId,
         ...userInfo,
         isAccountSuspended: isAccountSuspended,
         levelCount,
         inventory: inventoryItems,
+        achievements: groupedAchievements,
       });
     }
 
