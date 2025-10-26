@@ -52,13 +52,71 @@ fireBaseRoute.get(
 );
 
 // Purchasing an item.
-// Not final, might switch to transaction to prevent race conditions
+// // Not final, might switch to transaction to prevent race conditions
+// fireBaseRoute.post(
+//   "/purchaseItem",
+//   middleWare,
+//   async (req: IUserRequest, res: Response) => {
+//     const uid = req.user?.uid; // userid
+//     const { itemId, itemCost, itemName } = req.body;
+//     // Can pass the user's currency in the body instead, but might stick to this.
+//     try {
+//       const userRef = db.collection("Users").doc(uid); // queries user data
+//       const userSnap = await userRef.get();
+//       if (!userSnap.exists) {
+//         return res.status(404).json({ message: "User does not exist" });
+//       }
+
+//       const userData = userSnap.data();
+
+//       if (userData?.coins < itemCost) {
+//         return res.status(401).json({ message: "Not enough coins" });
+//       }
+//       // Update's user coins on firebase
+//       await userRef.update({
+//         coins: admin.firestore.FieldValue.increment(-Number(itemCost)),
+//       });
+
+//       const inventoryRef = db
+//         .collection("Users")
+//         .doc(uid)
+//         .collection("Inventory")
+//         .doc(itemId);
+
+//       const inventorySnap = await inventoryRef.get();
+
+//       if (inventorySnap.exists) {
+//         await inventoryRef.update({
+//           quantity: admin.firestore.FieldValue.increment(1),
+//           Icon: itemName || "",
+//           title: itemName.replace("_Icon.png", ""),
+//         });
+//       } else {
+//         await inventoryRef.set({
+//           quantity: 1,
+//           Icon: itemName || "",
+//           title: itemName.replace("_Icon.png", ""),
+//         });
+//       }
+
+//       return res.status(200).json({
+//         message: "sucess on purchasing item",
+//         newCoins: userData?.coins - itemCost,
+//       }); // returns the new coins for displaying
+//     } catch (error) {
+//       return res
+//         .status(500)
+//         .json({ message: "Failed when purchasing an item" });
+//     }
+//   }
+// );
+
 fireBaseRoute.post(
   "/purchaseItem",
   middleWare,
   async (req: IUserRequest, res: Response) => {
     const uid = req.user?.uid; // userid
-    const { itemId, itemCost, itemName, itemIcon } = req.body;
+    const { itemId, itemCost, itemName } = req.body;
     // Can pass the user's currency in the body instead, but might stick to this.
     try {
       const userRef = db.collection("Users").doc(uid); // queries user data
@@ -110,7 +168,6 @@ fireBaseRoute.post(
     }
   }
 );
-
 // get specific user information
 // Might be used on usermanagement
 fireBaseRoute.get(
