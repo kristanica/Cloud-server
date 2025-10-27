@@ -6,53 +6,80 @@ export const deleteSpecificProgress = async (req: Request, res: Response) => {
   try {
     const { uid, subject }: { uid: string; subject: string } = req.body;
 
-    const lessonRef = db
-      .collection("Users")
-      .doc(uid)
+    const userRef = db.collection("Users").doc(uid);
+    const lessonsRef = userRef
       .collection("Progress")
       .doc(subject)
       .collection("Lessons");
 
-    const lessonSnap = await lessonRef.get();
+    const lessonSnap = await lessonsRef.get();
 
-    const batch = db.batch();
-    //Rresets stasges
     for (const lessonDoc of lessonSnap.docs) {
-      batch.update(lessonDoc.ref, {
-        isLessonUnlocked: lessonDoc.id === "Lesson1" ? true : false,
-      });
-      const levelSnap = await lessonDoc.ref.collection("Levels").get();
-
-      for (const levelDoc of levelSnap.docs) {
-        const isLevel1 = levelDoc.id === "Level1";
-        batch.update(levelDoc.ref, {
-          isActive: isLevel1 ? true : false,
-          isCompletedAt:
-            levelDoc.id === "Level1" ? new Date() : FieldValue.delete(),
-          dateUnlocked: FieldValue.delete(),
-          isCompleted: false,
-          isRewardClaimed: false,
-        });
-        const stageSnap = await levelDoc.ref.collection("Stages").get();
-
-        // resets stages per level
-        for (const stageDoc of stageSnap.docs) {
-          const isStage1 = stageDoc.id === "Stage1";
-          batch.update(stageDoc.ref, {
+      if (lessonDoc.id !== "Lesson1") {
+        //  Recursively delete all other lessons & subcollections
+        await db.recursiveDelete(lessonDoc.ref);
+      } else {
+        //  Keep Lesson1 but reset it
+        await lessonDoc.ref.set(
+          {
+            isLessonUnlocked: true,
+            isCompleted: false,
             completedAt: FieldValue.delete(),
-            dateUnlocked:
-              isLevel1 && isStage1 ? new Date() : FieldValue.delete(),
-            isActive: isLevel1 && isStage1 ? true : false,
-            isCompleted: isLevel1 && isStage1 ? true : false,
-          });
+          },
+          { merge: true }
+        );
+
+        const levelSnap = await lessonDoc.ref.collection("Levels").get();
+        for (const levelDoc of levelSnap.docs) {
+          if (levelDoc.id !== "Level1") {
+            //  Delete all other levels and their subcollections
+            await db.recursiveDelete(levelDoc.ref);
+          } else {
+            //  Reset Level1
+            await levelDoc.ref.set(
+              {
+                isActive: true,
+                isCompleted: false,
+                isRewardClaimed: false,
+                completedAt: FieldValue.delete(),
+                dateUnlocked: new Date(),
+              },
+              { merge: true }
+            );
+
+            const stageSnap = await levelDoc.ref.collection("Stages").get();
+            for (const stageDoc of stageSnap.docs) {
+              if (stageDoc.id !== "Stage1") {
+                await db.recursiveDelete(stageDoc.ref);
+              } else {
+                await stageDoc.ref.set(
+                  {
+                    isActive: true,
+                    isCompleted: true, //  reset Stage1 progress too
+                    dateUnlocked: new Date(),
+                    completedAt: FieldValue.delete(),
+                  },
+                  { merge: true }
+                );
+              }
+            }
+          }
         }
       }
     }
-    await batch.commit();
-    return res.status(200).json({ message: "succesful reset" });
+
+    //  Remove the lastOpenedLevel entry for this subject
+    await userRef.update({
+      [`lastOpenedLevel.${subject}`]: FieldValue.delete(),
+    });
+
+    return res.status(200).json({
+      message: `User progress for ${subject} has been fully reset`,
+    });
   } catch (error) {
+    console.error(" Error in deleteSpecificProgress:", error);
     return res.status(500).json({
-      message: "Something went wrong when unlocking next stage/level/lesson",
+      message: "Something went wrong during reset",
       error: error instanceof Error ? error.message : error,
     });
   }
