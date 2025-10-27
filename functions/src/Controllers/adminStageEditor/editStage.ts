@@ -1,14 +1,13 @@
 import { bucket, db } from "../../admin/admin";
 import { Request, Response } from "express";
-
 import { filter } from "../nativeExclusive/filter";
+
 export const editStage = async (req: Request, res: Response) => {
   const { category, lessonId, levelId, stageId, stageType } = req.body as {
     category: string;
     lessonId: string;
     levelId: string;
     stageId: string;
-
     stageType?: string;
   };
 
@@ -62,6 +61,7 @@ export const editStage = async (req: Request, res: Response) => {
         });
       }
     }
+
     const stageRef = db
       .collection(category)
       .doc(lessonId)
@@ -72,47 +72,41 @@ export const editStage = async (req: Request, res: Response) => {
 
     const { filteredState, toBeDeleted } = filter(state, stageType);
 
+    // ✅ Single database write
     await stageRef.set(
       {
         ...filteredState,
         ...toBeDeleted,
         type: state?.type ? state.type : stageType,
       },
-      {
-        merge: true,
-      }
+      { merge: true }
     );
+
     const filePath = `stageFiles/${category}/${lessonId}/${levelId}/${stageId}/`;
 
+    // Delete files for non-Lesson/CodeCrafter types
     if (
       filteredState.type !== "Lesson" &&
       filteredState.type !== "CodeCrafter"
     ) {
-      const [files] = await bucket.getFiles({ prefix: filePath });
-      console.log(filePath);
-      if (files.length > 0) {
-        const deleteFiles = files.map((file) => file.delete());
-        await Promise.all(deleteFiles);
-      } else {
-        console.log("File does not exist");
+      try {
+        const [files] = await bucket.getFiles({ prefix: filePath });
+        console.log(filePath);
+        if (files.length > 0) {
+          const deleteFiles = files.map((file) => file.delete());
+          await Promise.all(deleteFiles);
+        } else {
+          console.log("File does not exist");
+        }
+      } catch (fileError) {
+        console.error("File deletion error:", fileError);
+        // Don't fail if file deletion fails
       }
-
-      return res.status(200).json({
-        message: `Stage under ${category}, ${lessonId}, ${levelId} and ${stageId} has been sucessfully been edited! Native!`,
-      });
     }
 
-    await stageRef.set(
-      {
-        ...state,
-        type: state?.type ? state.type : stageType,
-      },
-      {
-        merge: true,
-      }
-    );
+    // ✅ ADD THIS - Return response for ALL types
     return res.status(200).json({
-      message: `Stage under ${category}, ${lessonId}, ${levelId} and ${stageId} has been sucessfully been edited! Web!`,
+      message: `Stage under ${category}, ${lessonId}, ${levelId} and ${stageId} has been successfully edited!`,
     });
   } catch (error) {
     console.log(error);

@@ -20,7 +20,17 @@ export const fetchUsers = async (req: Request, res: Response) => {
 
     for (const snap of userSnapShot.docs) {
       const userId = snap.id;
-      const isAccountSuspended = (await auth.getUser(userId)).disabled;
+      // const isAccountSuspended = (await auth.getUser(userId)).disabled;
+      let isAccountSuspended = false;
+      try {
+        const userRecord = await auth.getUser(userId);
+        isAccountSuspended = userRecord.disabled;
+      } catch (err) {
+        console.warn(
+          `User ${userId} not found in Auth. Skipping disabled check.`
+        );
+        isAccountSuspended = false; // fallback
+      }
 
       const userInfo = snap.data() as userDataProps;
 
@@ -52,26 +62,26 @@ export const fetchUsers = async (req: Request, res: Response) => {
 
         levelCount[subjectLoop] = userSubjectLevelCount;
       }
-      const userItems = userRef.doc(userId).collection("Inventory");
+      // const userItems = userRef.doc(userId).collection("Inventory");
 
-      const itemSnap = await userItems.get();
+      // const itemSnap = await userItems.get();
 
-      // NOTE: STIll UNUSED, COMPLECATED AS FUCK
-      const inventoryItems: Record<
-        string,
-        {
-          title: string;
-          quantity: number;
-        }
-      > = {};
+      // // NOTE: STIll UNUSED, COMPLECATED AS FUCK
+      // const inventoryItems: Record<
+      //   string,
+      //   {
+      //     title: string;
+      //     quantity: number;
+      //   }
+      // > = {};
 
-      itemSnap.docs.map((doc) => {
-        const data = doc.data();
-        inventoryItems[doc.id] = {
-          title: data.title || "",
-          quantity: data.quantity || 0,
-        };
-      }) || [];
+      // itemSnap.docs.map((doc) => {
+      //   const data = doc.data();
+      //   inventoryItems[doc.id] = {
+      //     title: data.title || "",
+      //     quantity: data.quantity || 0,
+      //   };
+      // }) || [];
       const groupedAchievements: Record<
         "Html" | "Css" | "JavaScript" | "Database",
         { quantity: number }
@@ -106,7 +116,7 @@ export const fetchUsers = async (req: Request, res: Response) => {
         ...userInfo,
         isAccountSuspended: isAccountSuspended,
         levelCount,
-        inventory: inventoryItems,
+        // inventory: inventoryItems,
         achievements: groupedAchievements,
       });
     }

@@ -113,7 +113,8 @@ fireBaseAdminRoute.post(
 fireBaseAdminRoute.post(
   "/uploadFile",
   middleWare,
-  upload.single("replicateFile"), // Must be sent as URI. Name of the image on formData MUST be replicateImage
+  // NOTE: CHANGED TO BUSBOY
+  // upload.single("replicateFile"), // Must be sent as URI. Name of the image on formData MUST be replicateImage
   uploadFile
 );
 fireBaseAdminRoute.get("/test", (req, res) => {
@@ -123,12 +124,7 @@ fireBaseAdminRoute.get("/test", (req, res) => {
 // Seperate call, must be sent as formData and make content-type "multipart/form-data"
 
 fireBaseAdminRoute.post("/codeCrafter", middleWare, codeCrafter);
-fireBaseAdminRoute.post(
-  "/uploadVideo",
-  middleWare,
-  upload.single("video"), // Must be sent as URI. Name of the video on formData MUST be video
-  uploadVideo
-);
+fireBaseAdminRoute.post("/uploadVideo", uploadVideo);
 
 //fetches all users
 fireBaseAdminRoute.get("/getUsers", middleWare, fetchUsers);

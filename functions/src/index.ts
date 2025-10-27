@@ -8,7 +8,7 @@ import compression from "compression";
 
 // import * as functions from "firebase-functions/v2/https";
 dotenv.config();
-const PORT = process.env.PORT || 8082;
+const PORT = 8081;
 const corsOptions = {
   origin: "*",
 }; // temporary, will switch to real URL when deployed
@@ -22,7 +22,6 @@ app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
 app.use("/openAI", openAiRoute);
 app.use("/fireBase", fireBaseRoute);
-
 
 app.use("/fireBaseAdmin", fireBaseAdminRoute);
 app.listen(PORT, () => {
